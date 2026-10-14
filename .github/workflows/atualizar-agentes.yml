@@ -1,0 +1,42 @@
+name: Atualizar dash de agentes (Brudam)
+
+on:
+  schedule:
+    # horários em UTC: 10h e 19h UTC = 07h e 16h em Brasília, de segunda a sábado
+    - cron: "0 10 * * 1-6"
+    - cron: "0 19 * * 1-6"
+  workflow_dispatch: {}   # botão "Run workflow" para atualizar na hora
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-agentes
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Buscar Tela 376 no Brudam e gerar dados.json
+        env:
+          BRUDAM_TOKEN: ${{ secrets.BRUDAM_TOKEN }}
+          BRUDAM_USUARIO: ${{ secrets.BRUDAM_USUARIO }}
+          BRUDAM_SENHA: ${{ secrets.BRUDAM_SENHA }}
+          BRUDAM_URL: ${{ secrets.BRUDAM_URL }}
+        run: node scripts/atualizar-brudam.mjs
+
+      - name: Publicar se houver mudança
+        run: |
+          git config user.name "portoex-bot"
+          git config user.email "actions@github.com"
+          git add dados.json
+          git diff --cached --quiet && echo "Sem mudanças" && exit 0
+          git commit -m "Atualiza dash de agentes (Brudam Tela 376)"
+          git push

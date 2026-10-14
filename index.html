@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Portoex Agentes Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout copiado do Portoex Performance Hub: login → ranking Top 30 → detalhe com abas. Tema único escuro. */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#080F1E;--bg2:#0D1829;--bg3:#111F35;--bd:#1E3A5F;--or:#F97316;--or2:#FB923C;--gn:#10B981;--rd:#EF4444;--am:#F59E0B;--t1:#F8FAFC;--t2:#94A3B8;--t3:#64748B;--r:10px;--ink:#fff;color-scheme:dark}
+body{font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+@keyframes fadeUp{from{opacity:.4;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#vL{display:flex;align-items:center;justify-content:center;min-height:100vh;padding-block:24px;background:radial-gradient(ellipse at 30% 50%,rgba(249,115,22,.07),transparent 60%)}
+.box{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:48px 44px;width:440px;max-width:100%;animation:fadeUp .5s ease}
+.logo{font-size:22px;font-weight:800;color:var(--or);margin-bottom:6px}.logo span{color:var(--t2);font-weight:400}
+.sub{font-size:13px;color:var(--t3);margin-bottom:28px}
+.fi{margin-bottom:14px}.fi label{display:block;font-size:11px;color:var(--t2);margin-bottom:5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.fi input,.fi select{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;color:var(--t1);font-family:inherit;font-size:14px;outline:none}
+.fi input:focus,.fi select:focus,.hsel:focus,.srch:focus{border-color:var(--or)}
+.fi select option,.hsel option{background:var(--bg3)}
+.btn{width:100%;padding:13px;background:var(--or);border:none;border-radius:8px;color:var(--ink);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}.btn:hover{background:var(--or2)}
+button:focus-visible,tr.dr:focus-visible,.tab:focus-visible{outline:2px solid var(--or2);outline-offset:2px}
+.hint{font-size:12px;color:var(--t3);text-align:center;margin-top:14px}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:14px;background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:env(safe-area-inset-top,0px);z-index:100}
+.hlogo{font-size:17px;font-weight:800;color:var(--or);cursor:pointer;background:none;border:none;font-family:inherit}.hlogo span{color:var(--t2);font-weight:400}
+.hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hsel{background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:6px 12px;font-size:13px;color:var(--t1);font-family:inherit;outline:none;cursor:pointer}
+.av{width:34px;height:34px;border-radius:50%;background:rgba(249,115,22,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--or);border:1px solid rgba(249,115,22,.3)}
+.mn{padding-block:24px;max-width:1400px;margin:0 auto}
+.banner{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--gn);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.banner.prev{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25);color:var(--am)}
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden}
+.sc::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%}
+.sc.or::before{background:var(--or)}.sc.gn::before{background:var(--gn)}.sc.rd::before{background:var(--rd)}.sc.bl::before{background:var(--or2)}.sc.am::before{background:var(--am)}
+.sl{font-size:11px;color:var(--t2);font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:7px}
+.sv{font-size:28px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.sch{font-size:12px;color:var(--t2)}.up{color:var(--gn)}.dn{color:var(--rd)}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.st{font-size:15px;font-weight:600}.ss{font-size:12px;color:var(--t2);margin-top:2px}
+.srch{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:7px 13px;color:var(--t1);font-family:inherit;font-size:13px;outline:none;width:210px;max-width:100%}
+.srch::placeholder{color:var(--t3)}
+.tw{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{padding:10px 14px;text-align:left;font-size:11px;color:var(--t2);font-weight:600;letter-spacing:.5px;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bd)}
+tr:last-child td{border-bottom:none}
+tr.dr:hover td{background:var(--bg3);cursor:pointer}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:5px;font-size:11px;font-weight:700;background:var(--bg3);color:var(--t2)}
+.r1{background:rgba(249,115,22,.2);color:var(--or)}.r2{background:rgba(148,163,184,.12);color:#94A3B8}.r3{background:rgba(184,151,60,.12);color:#B8973C}
+.bb{height:5px;border-radius:3px;background:var(--bg3);width:72px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}.bf{height:100%;border-radius:3px}
+.tg{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.tgn{background:rgba(16,185,129,.12);color:var(--gn)}.tyw{background:rgba(245,158,11,.12);color:var(--am)}.trd{background:rgba(239,68,68,.12);color:var(--rd)}.tgy{background:rgba(148,163,184,.12);color:var(--t2)}
+.bk{background:none;border:none;color:var(--t2);font-family:inherit;font-size:14px;cursor:pointer;padding:0;margin-bottom:20px}.bk:hover{color:var(--t1)}
+.cn{font-size:22px;font-weight:700;margin-bottom:4px;text-wrap:balance}
+.cm{font-size:13px;color:var(--t2);margin-bottom:20px}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kp{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px}
+.kl{font-size:11px;color:var(--t2);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.kv{font-size:22px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:3px;font-variant-numeric:tabular-nums}
+.kc{font-size:12px}
+.tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--bg2);padding:4px;border-radius:9px;max-width:100%;width:fit-content;border:1px solid var(--bd);overflow-x:auto}
+.tab{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;background:none;color:var(--t2);font-family:inherit;white-space:nowrap}
+.tab.on{background:var(--bg3);color:var(--t1);border-color:var(--bd)}
+.cc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:16px;min-width:0}
+.ct{font-size:14px;font-weight:600;margin-bottom:3px}.cs{font-size:12px;color:var(--t2);margin-bottom:12px}
+.ox{overflow-x:auto}
+.mt{width:100%;border-collapse:collapse;font-size:13px}
+.mt th{padding:8px 12px}.mt td{padding:8px 12px}
+.mt tr:hover td{background:var(--bg3)}
+.md-alert{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--rd)}
+.cpc2{background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px}
+.g2 > *{margin-bottom:0}
+.nota{font-size:12px;color:var(--am);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;line-height:1.5}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.mbox{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;width:900px;max-width:100%;max-height:85vh;overflow:auto;padding:20px}
+.mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
+.x{background:var(--bg3);border:1px solid var(--bd);color:var(--t1);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit}
+.loading{padding:60px 0;text-align:center;color:var(--t2)}
+@media (max-width:520px){.box{padding:32px 22px}.sv{font-size:22px}.hd .hsel{max-width:58vw}}
+</style>
+</head><body>
+
+<div id="vL" class="gut"><div class="box">
+  <div class="logo">PORTO<span>EX</span></div>
+  <div class="sub">Performance de Agentes de Entrega &mdash; 2026</div>
+  <form id="fLogin">
+    <div class="fi"><label for="iE">Usu&aacute;rio</label><input type="email" id="iE" placeholder="nome@portoex.com.br" autocomplete="username"></div>
+    <div class="fi"><label for="iP">Senha</label><input type="password" id="iP" autocomplete="current-password"></div>
+    <div class="fi"><label for="iMes">Per&iacute;odo</label><select id="iMes"></select></div>
+    <button class="btn" type="submit">Entrar</button>
+  </form>
+  <p class="hint">Brudam &bull; Tela 376 &bull; Data Prev. Entrega &bull; Meta: <span class="metaTx">96</span>%</p>
+</div></div>
+
+<div id="vD" hidden>
+  <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
+    <div class="hr"><select class="hsel" id="hMes" aria-label="Período"></select><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
+  <div class="mn gut">
+    <div class="banner" id="banner"><span>&#10003; Brudam &bull; Tela 376 &bull; Data Prev. Entrega &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente &bull; Meta: <span class="metaTx">96</span>%</span><span><strong id="periodoLabel"></strong> <span id="lastUpdate" style="font-weight:400;color:var(--t2);margin-left:8px;font-size:11px"></span></span></div>
+    <div id="notaPrev" class="nota" hidden></div>
+    <div class="sg" id="sg"></div>
+    <div class="sh"><div><div class="st" id="tituloRanking"></div><div class="ss">Clique no agente para ver detalhes</div></div><input class="srch" id="iBusca" type="text" placeholder="Buscar agente..." aria-label="Buscar agente"></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>Agente de Entrega</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>vs M&ecirc;s Ant.</th><th>Status</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <div id="glob" style="margin-top:20px"></div>
+  </div>
+</div>
+
+<div id="vC" hidden>
+  <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
+    <div class="hr"><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
+  <div class="mn gut">
+    <button class="bk" onclick="goDash()">&#8592; Voltar</button>
+    <div class="cn" id="cN"></div><div class="cm" id="cM"></div>
+    <div class="kg" id="kpis"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab on" onclick="swTab(0)">Vis&atilde;o Geral</button><button class="tab" onclick="swTab(1)">Fora do Prazo</button><button class="tab" onclick="swTab(2)">Por UF</button><button class="tab" onclick="swTab(3)">Destinat&aacute;rios</button><button class="tab" onclick="swTab(4)">Pagadores</button><button class="tab" onclick="swTab(5)">Ranking Global</button>
+    </div>
+    <div class="tc" id="t0"></div><div class="tc" id="t1" hidden></div><div class="tc" id="t2" hidden></div><div class="tc" id="t3" hidden></div><div class="tc" id="t4" hidden></div><div class="tc" id="t5" hidden></div>
+  </div>
+</div>
+
+<script>
+var D=null,M=null,CL=[],fcl=[],cur=null,META=96,PREVIA=false;
+function $(i){return document.getElementById(i);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+function nf(v){return v==null?"—":Number(v).toLocaleString("pt-BR");}
+function pf(v){return v==null?"—":Number(v).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";}
+function cor(t){return t==null?"var(--t2)":t>=META?"var(--gn)":t>=85?"var(--am)":"var(--rd)";}
+function stag(t){return t==null?"<span class=\"tg tgy\">Sem volume</span>":t>=META?"<span class=\"tg tgn\">Excelente</span>":t>=85?"<span class=\"tg tyw\">Regular</span>":"<span class=\"tg trd\">Crítico</span>";}
+function ftag(f){return f===0?"<span class=\"tg tgn\">Sem atraso</span>":f<=3?"<span class=\"tg tyw\">"+f+" atraso(s)</span>":"<span class=\"tg trd\">"+f+" atrasos</span>";}
+
+function carregar(){
+  fetch("dados.json?v="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+  .catch(function(){return window.__DADOS__||null;})
+  .then(function(d){
+    if(!d||!d.meses||!d.meses.length){$("vL").querySelector(".hint").textContent="Não foi possível carregar dados.json. Rode a atualização do Brudam e recarregue a página.";return;}
+    D=d;META=d.meta||96;PREVIA=d.fonte==="previa";
+    document.querySelectorAll(".metaTx").forEach(function(e){e.textContent=META;});
+    var def=d.meses.length-1;for(var i=d.meses.length-1;i>=0;i--){if(!d.meses[i].parcial){def=i;break;}}
+    var opt="";for(var j=d.meses.length-1;j>=0;j--){var m=d.meses[j];opt+="<option value=\""+m.chave+"\""+(j===def?" selected":"")+">"+esc(m.label+(m.parcial?" (parcial)":""))+"</option>";}
+    $("iMes").innerHTML=opt;$("hMes").innerHTML=opt;
+    trocarMes(d.meses[def].chave);
+    var u=null;try{u=sessionStorage.getItem("ag_user");}catch(e){}
+    if(u){$("iE").value=u;login();}
+  });
+}
+function trocarMes(k){for(var i=0;i<D.meses.length;i++)if(D.meses[i].chave===k)M=D.meses[i];
+  CL=M.agentes.slice();fcl=CL.slice();$("hMes").value=k;$("iMes").value=k;
+  $("periodoLabel").textContent=M.label+(M.parcial?" (parcial)":"");
+  $("lastUpdate").textContent="Atualizado em "+D.gerado_em;
+  $("tituloRanking").textContent=(PREVIA?"Top 30 Agentes por atrasos — ":"Top 30 Agentes — ")+M.label;
+  $("iBusca").value="";
+  if(!$("vD").hidden)goDash();
+}
+function login(){var e=$("iE").value.trim();if(!e){$("iE").focus();return;}var nm=e.indexOf("@")>0?e.split("@")[0]:e;
+  try{sessionStorage.setItem("ag_user",e);}catch(x){}
+  document.querySelectorAll(".hN").forEach(function(x){x.textContent=nm;});document.querySelectorAll(".hA").forEach(function(x){x.textContent=nm.slice(0,2).toUpperCase();});
+  $("vL").hidden=true;goDash();}
+function goDash(){$("vC").hidden=true;$("vD").hidden=false;
+  $("banner").className="banner"+(PREVIA?" prev":"");
+  var np=$("notaPrev");np.hidden=!PREVIA;
+  if(PREVIA)np.innerHTML="<strong>Prévia.</strong> Estes dados vêm do site de pagadores, que só registra o agente nas entregas <strong>fora do prazo</strong> dos Top 30 pagadores. Por isso o ranking mostra os atrasos de cada agente, sem total e sem taxa. Quando a API do Brudam estiver ligada, a página passa a mostrar total, no prazo e taxa de cada agente.";
+  mkSum();mkTable(fcl);mkGlobal();window.scrollTo(0,0);}
+
+function sc(cl,lb,val,sub,good,chg){return "<div class=\"sc "+cl+"\"><div class=\"sl\">"+lb+"</div><div class=\"sv\">"+val+"</div><div class=\"sch\">"+sub+(chg?" <span class=\""+(good?"up":"dn")+"\">"+chg+"</span>":"")+"</div></div>";}
+function delta(a,b,suf,inv){if(a==null||b==null)return null;var d=a-b;if(suf==="%")d=b>0?(a-b)/b*100:0;var s=(d>=0?"↑":"↓")+Math.abs(d).toFixed(1).replace(".",",")+suf;return {txt:s,good:inv?d<=0:d>=0};}
+function mkSum(){var R=M.resumo,P=M.resumo_prev||null;
+  var dT=P?delta(R.total,P.total,"%"):null,dS=P?delta(R.taxa,P.taxa,"pp"):null,dF=P?delta(R.fora,P.fora,"%",true):null;
+  var foraAg=CL.reduce(function(a,b){return a+(b.fora||0);},0);
+  $("sg").innerHTML=
+    sc("or","Total Entregas",nf(R.total),P?"vs mês ant.":M.label,dT&&dT.good,dT&&dT.txt)+
+    sc("gn","No Prazo",nf(R.sucesso),"inclui ineficiência do cliente")+
+    sc("rd","Fora do Prazo",nf(R.fora),P?"vs mês ant.":"",dF&&dF.good,dF&&dF.txt)+
+    sc(R.taxa>=META?"gn":"am","Taxa Geral",pf(R.taxa),"meta "+META+"%",dS&&dS.good,dS&&dS.txt)+
+    sc("bl","Agentes",nf(R.agentes),PREVIA?nf(foraAg)+" MDs fora com agente":(R.sem_agente?nf(R.sem_agente)+" entregas sem agente":"com entregas no período"));}
+
+function mkTable(cl){var h="",lim=Math.min(cl.length,30);
+  for(var i=0;i<lim;i++){var c=cl[i],tx=c.taxa,bc=cor(tx),vs="—",vsc="var(--t2)";
+    if(c.prev){if(PREVIA){var d=c.fora-c.prev.fora;vs=(d>0?"+":"")+d+" atraso(s)";vsc=d<=0?"var(--gn)":"var(--rd)";}
+      else if(c.prev.taxa!=null&&tx!=null){var dp=tx-c.prev.taxa;vs=(dp>=0?"↑":"↓")+Math.abs(dp).toFixed(1).replace(".",",")+"pp";vsc=dp>=0?"var(--gn)":"var(--rd)";}}
+    else vs="novo";
+    h+="<tr class=\"dr\" tabindex=\"0\" onclick=\"goAgente("+c.id+")\" onkeydown=\"if(event.key==='Enter')goAgente("+c.id+")\">"+
+      "<td><span class=\"rb "+(i<3?"r"+(i+1):"")+"\">"+c.rank+"</span></td>"+
+      "<td style=\"font-weight:600;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\" title=\""+esc(c.name)+"\">"+esc(c.name)+"</td>"+
+      "<td>"+nf(c.total)+"</td><td style=\"color:var(--gn)\">"+nf(c.sucesso)+"</td>"+
+      "<td style=\"color:"+(c.fora>0?"var(--rd)":"var(--gn)")+";font-weight:600\">"+nf(c.fora)+"</td>"+
+      "<td style=\"white-space:nowrap\">"+(tx==null?"—":"<span class=\"bb\"><span class=\"bf\" style=\"display:block;width:"+tx+"%;background:"+bc+"\"></span></span><span style=\"color:"+bc+";font-weight:700\">"+pf(tx)+"</span>")+"</td>"+
+      "<td style=\"color:"+vsc+";font-size:12px;white-space:nowrap\">"+vs+"</td>"+
+      "<td>"+(PREVIA?ftag(c.fora):stag(tx))+"</td></tr>";}
+  if(!lim)h="<tr><td colspan=\"8\" style=\"text-align:center;color:var(--t2);padding:24px\">Nenhum agente encontrado.</td></tr>";
+  $("tb").innerHTML=h;}
+$("iBusca").addEventListener("input",function(){var q=this.value.toLowerCase();fcl=CL.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0;});mkTable(fcl);});
+
+function tabUF(ufs,onclick){var r="";for(var i=0;i<ufs.length;i++){var u=ufs[i];
+  r+="<tr"+(onclick?" class=\"dr\" tabindex=\"0\" onclick=\"showUF('"+esc(u.uf)+"')\" onkeydown=\"if(event.key==='Enter')showUF('"+esc(u.uf)+"')\" title=\"Ver MDs fora do prazo\"":"")+"><td style=\"font-weight:700\">"+esc(u.uf)+"</td><td>"+nf(u.total)+"</td><td style=\"color:var(--gn)\">"+nf(u.sucesso)+"</td><td style=\"color:"+(u.fora>0?"var(--rd)":"var(--gn)")+"\">"+nf(u.fora)+"</td><td style=\"color:"+cor(u.taxa)+";font-weight:700\">"+pf(u.taxa)+"</td>"+(u.agentes!=null?"<td style=\"color:var(--t2)\">"+u.agentes+"</td>":"")+"<td>"+(PREVIA?ftag(u.fora):stag(u.taxa))+"</td></tr>";}
+  return r;}
+function mkGlobal(){var u=M.ufs||[];
+  $("glob").innerHTML="<div class=\"cc\"><div class=\"ct\">Performance por UF de destino</div><div class=\"cs\">"+esc(M.label)+" · clique na UF para ver as MDs fora do prazo</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>UF</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Agentes</th><th>Status</th></tr></thead><tbody>"+tabUF(u,true)+"</tbody></table></div></div>";}
+function showUF(uf){var rows="",n=0;
+  CL.forEach(function(a){(a.mds_fora||[]).forEach(function(m){if(m.uf!==uf)return;n++;rows+="<tr><td style=\"color:var(--rd);font-weight:700\">"+esc(m.md)+"</td><td style=\"font-size:12px\">"+esc(a.name)+"</td><td style=\"font-size:12px\">"+esc(m.dest)+"</td><td>"+esc(m.data)+"</td><td style=\"font-size:12px;color:var(--t2)\">"+esc(m.pagador)+"</td><td><span class=\"tg trd\">"+esc(m.status)+"</span></td></tr>";});});
+  var el=document.createElement("div");el.className="modal";el.id="mdModal";el.onclick=function(e){if(e.target===el)el.remove();};
+  el.innerHTML="<div class=\"mbox\" role=\"dialog\" aria-label=\"MDs fora do prazo\"><div class=\"mhd\"><div><div class=\"ct\">"+esc(uf)+" · MDs fora do prazo</div><div class=\"cs\" style=\"margin:0\">"+n+" MD(s) · "+esc(M.label)+"</div></div><button class=\"x\" onclick=\"document.getElementById('mdModal').remove()\">Fechar</button></div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>MD</th><th>Agente</th><th>Destinatário</th><th>Data Prev.</th><th>Pagador</th><th>Status</th></tr></thead><tbody>"+(rows||"<tr><td colspan=\"6\" style=\"color:var(--gn);text-align:center\">Nenhuma MD fora do prazo.</td></tr>")+"</tbody></table></div></div>";
+  document.body.appendChild(el);el.querySelector(".x").focus();}
+document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=$("mdModal");if(m)m.remove();}});
+
+function goAgente(id){cur=null;for(var i=0;i<CL.length;i++)if(CL[i].id===id){cur=CL[i];break;}if(!cur)return;
+  $("vD").hidden=true;$("vC").hidden=false;$("cN").textContent=cur.name;
+  $("cM").textContent="Agente de entrega · "+M.label+" · #"+cur.rank+"/"+CL.length+(PREVIA?" em atrasos":"")+" · Meta: "+META+"%";
+  mkKPIs();mkTabs();swTab(0);window.scrollTo(0,0);}
+function kp(lb,col,val,chg,good){return "<div class=\"kp\"><div class=\"kl\">"+lb+"</div><div class=\"kv\" style=\"color:"+col+"\">"+val+"</div><div class=\"kc\" style=\"color:"+(chg?(good?"var(--gn)":"var(--rd)"):"var(--t2)")+"\">"+(chg||"&nbsp;")+"</div></div>";}
+function mkKPIs(){var c=cur,p=c.prev,tc=cor(c.taxa);
+  var dE=p?delta(c.total,p.total,"%"):null,dT=p?delta(c.taxa,p.taxa,"pp"):null,dF=p?delta(c.fora,p.fora,"",true):null;
+  $("kpis").innerHTML=kp("Total Entregas","var(--or)",nf(c.total),dE&&dE.txt+" vs ant.",dE&&dE.good)+
+    kp("No Prazo",tc,nf(c.sucesso),dT&&dT.txt+" vs ant.",dT&&dT.good)+
+    kp("Fora do Prazo",c.fora>0?"var(--rd)":"var(--gn)",nf(c.fora),dF?dF.txt.replace(",0","")+" vs ant.":(p?"":"sem mês anterior"),dF&&dF.good)+
+    kp("Taxa",tc,pf(c.taxa),c.taxa==null?"":(c.taxa>=META?"acima da meta":"abaixo da meta de "+META+"%"),c.taxa!=null&&c.taxa>=META)+
+    kp("UFs atendidas","var(--or2)",nf((c.ufs||[]).length),nf((c.pagadores||[]).length)+" pagador(es)",true);}
+function mkDonut(suc,fora,taxa){var r=65,cx=85,cy=85,circ=2*Math.PI*r,col=taxa>=META?"#10B981":taxa>=85?"#F59E0B":"#EF4444",dash=(suc/(suc+Math.max(fora,0.001)))*circ;
+  return "<div style=\"display:flex;align-items:center;gap:20px;flex-wrap:wrap\"><svg width=\"170\" height=\"170\" viewBox=\"0 0 170 170\" role=\"img\" aria-label=\"Taxa "+pf(taxa)+"\"><circle cx=\"85\" cy=\"85\" r=\"65\" fill=\"none\" stroke=\"#1E3A5F\" stroke-width=\"16\"/><circle cx=\"85\" cy=\"85\" r=\"65\" fill=\"none\" stroke=\""+col+"\" stroke-width=\"16\" stroke-dasharray=\""+dash+" "+circ+"\" transform=\"rotate(-90 85 85)\" stroke-linecap=\"round\"/><text x=\"85\" y=\"82\" text-anchor=\"middle\" fill=\"#F8FAFC\" font-size=\"26\" font-weight=\"700\" font-family=\"Courier New,monospace\">"+pf(taxa)+"</text><text x=\"85\" y=\"104\" text-anchor=\"middle\" fill=\"#94A3B8\" font-size=\"11\">no prazo</text></svg>"+
+  "<div style=\"display:grid;gap:10px;font-size:13px\"><div><span style=\"display:inline-block;width:10px;height:10px;border-radius:2px;background:"+col+";margin-right:8px\"></span>No prazo: <strong>"+nf(suc)+"</strong></div><div><span style=\"display:inline-block;width:10px;height:10px;border-radius:2px;background:#1E3A5F;margin-right:8px\"></span>Fora do prazo: <strong>"+nf(fora)+"</strong></div><div style=\"color:var(--t2)\">Meta: "+META+"%</div></div></div>";}
+function cpc2(lb,prev,curr,col,d){return "<div class=\"cpc2\"><span style=\"font-size:12px;color:var(--t2)\">"+lb+"</span><div style=\"display:flex;align-items:center;gap:10px\"><span style=\"font-size:13px;color:var(--t3)\">"+prev+"</span><span style=\"color:var(--t3)\">→</span><span style=\"font-size:16px;font-weight:700;color:"+col+"\">"+curr+"</span>"+(d?"<span style=\"font-size:12px;color:"+(d.good?"var(--gn)":"var(--rd)")+"\">"+d.txt+"</span>":"")+"</div></div>";}
+function barras(lista,campo,lab){var mx=1;lista.forEach(function(x){mx=Math.max(mx,x[campo]||0);});var h="";
+  lista.slice(0,8).forEach(function(x){var v=x[campo]||0;h+="<div style=\"display:grid;grid-template-columns:minmax(0,1fr) 2fr 36px;gap:10px;align-items:center;font-size:12px;margin-bottom:8px\"><span style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap\" title=\""+esc(x[lab])+"\">"+esc(x[lab])+"</span><span style=\"background:var(--bg3);height:8px;border-radius:4px;overflow:hidden\"><span style=\"display:block;height:100%;width:"+(v/mx*100)+"%;background:var(--rd)\"></span></span><span style=\"text-align:right;font-weight:700;color:var(--rd)\">"+v+"</span></div>";});
+  return h||"<div style=\"color:var(--gn);font-size:13px\">Nenhum atraso.</div>";}
+function mkTabs(){var c=cur,p=c.prev;
+  var esquerda=PREVIA?"<div class=\"cc\"><div class=\"ct\">Atrasos por pagador</div><div class=\"cs\">"+nf(c.fora)+" MD(s) fora do prazo · "+esc(M.label)+"</div>"+barras(c.pagadores||[],"fora","name")+"</div>"
+    :"<div class=\"cc\"><div class=\"ct\">No Prazo vs Fora do Prazo</div><div class=\"cs\">"+nf(c.total)+" entregas · "+esc(M.label)+"</div>"+mkDonut(c.sucesso,c.fora,c.taxa)+"</div>";
+  var comp=p?(PREVIA?"":cpc2("Total de entregas",nf(p.total),nf(c.total),"var(--or)",delta(c.total,p.total,"%"))+cpc2("Taxa no prazo",pf(p.taxa),pf(c.taxa),cor(c.taxa),delta(c.taxa,p.taxa,"pp")))+cpc2("Fora do prazo",nf(p.fora),nf(c.fora),c.fora>0?"var(--rd)":"var(--gn)",delta(c.fora,p.fora,"",true))
+    :"<div style=\"color:var(--t2);font-size:13px\">Sem dados deste agente no mês anterior.</div>";
+  $("t0").innerHTML="<div class=\"g2\">"+esquerda+"<div class=\"cc\"><div class=\"ct\">Comparativo com o mês anterior</div><div class=\"cs\">Mês anterior → "+esc(M.label)+"</div>"+comp+"</div></div>"+
+    "<div class=\"cc\"><div class=\"ct\">UFs com mais atrasos</div><div class=\"cs\">MDs fora do prazo por UF de destino</div>"+barras((c.ufs||[]).slice().sort(function(a,b){return b.fora-a.fora;}).filter(function(x){return x.fora>0;}),"fora","uf")+"</div>";
+  var mds=c.mds_fora||[],mr="";
+  mds.forEach(function(m){mr+="<tr><td style=\"color:var(--rd);font-weight:700\">"+esc(m.md)+"</td><td style=\"font-size:12px\">"+esc(m.dest)+"</td><td>"+esc(m.cidade)+"</td><td>"+esc(m.uf)+"</td><td>"+esc(m.data)+"</td><td><span class=\"tg trd\">"+esc(m.status)+"</span></td><td style=\"font-size:12px;color:var(--t2)\">"+esc(m.pagador)+"</td></tr>";});
+  $("t1").innerHTML="<div class=\"cc\">"+(mds.length?"<div class=\"md-alert\">"+mds.length+" entrega(s) fora do prazo</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>MD</th><th>Destinatário</th><th>Cidade</th><th>UF</th><th>Data Prev.</th><th>Status</th><th>Pagador</th></tr></thead><tbody>"+mr+"</tbody></table></div>":"<div style=\"color:var(--gn);padding:20px;text-align:center;font-size:15px;font-weight:600\">✓ Nenhuma entrega fora do prazo!</div>")+"</div>";
+  $("t2").innerHTML="<div class=\"cc\"><div class=\"ct\">Performance por UF</div><div class=\"cs\">"+(c.ufs||[]).length+" estado(s)</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>UF</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Status</th></tr></thead><tbody>"+tabUF(c.ufs||[],false)+"</tbody></table></div></div>";
+  function lista(arr,campo,titulo,col){var r="";arr.forEach(function(d,i){r+="<tr><td style=\"color:var(--t2)\">"+(i+1)+"</td><td style=\"font-size:12px\">"+esc(d[campo])+"</td><td>"+nf(d.total)+"</td><td style=\"color:var(--gn)\">"+nf(d.sucesso)+"</td><td style=\"color:"+(d.fora>0?"var(--rd)":"var(--gn)")+"\">"+nf(d.fora)+"</td><td style=\"color:"+cor(d.taxa)+";font-weight:700\">"+pf(d.taxa)+"</td><td>"+(PREVIA?ftag(d.fora):stag(d.taxa))+"</td></tr>";});
+    return "<div class=\"cc\"><div class=\"ct\">"+titulo+" ("+arr.length+")</div><div class=\"cs\">"+esc(M.label)+"</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>#</th><th>"+col+"</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Status</th></tr></thead><tbody>"+r+"</tbody></table></div></div>";}
+  $("t3").innerHTML=lista(c.dest||[],"dest","Destinatários atendidos","Destinatário");
+  $("t4").innerHTML=lista(c.pagadores||[],"name","Pagadores atendidos","Pagador");
+  var rk="";CL.forEach(function(a){var on=a.id===c.id;rk+="<tr style=\""+(on?"background:rgba(249,115,22,.08)":"")+"\"><td style=\"color:"+(on?"var(--or)":"var(--t2)")+";font-weight:700\">"+a.rank+"</td><td style=\"font-size:12px;"+(on?"color:var(--or);font-weight:700":"")+"\">"+esc(a.name)+"</td><td>"+nf(a.total)+"</td><td style=\"color:var(--gn)\">"+nf(a.sucesso)+"</td><td style=\"color:"+(a.fora>0?"var(--rd)":"var(--gn)")+"\">"+nf(a.fora)+"</td><td style=\"color:"+cor(a.taxa)+";font-weight:700\">"+pf(a.taxa)+"</td></tr>";});
+  $("t5").innerHTML="<div class=\"cc\"><div class=\"ct\">Ranking global de agentes</div><div class=\"cs\">"+CL.length+" agentes · "+esc(M.label)+(PREVIA?" · ordenado por atrasos":" · ordenado por volume")+"</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>#</th><th>Agente</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th></tr></thead><tbody>"+rk+"</tbody></table></div></div>";}
+function swTab(i){document.querySelectorAll(".tab").forEach(function(t,j){t.className="tab"+(j===i?" on":"");});document.querySelectorAll(".tc").forEach(function(t,j){t.hidden=j!==i;});}
+
+$("fLogin").addEventListener("submit",function(e){e.preventDefault();if(!D)return;trocarMes($("iMes").value);login();});
+$("hMes").addEventListener("change",function(){trocarMes(this.value);});
+carregar();
+</script>
+</body></html>

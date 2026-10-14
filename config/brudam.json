@@ -1,0 +1,40 @@
+{
+  "_leia": "Ajuste este arquivo com os dados da API da Tela 376 que o Brudam forneceu. Token/usuário/senha NÃO ficam aqui: vão nos Secrets do GitHub (BRUDAM_TOKEN, BRUDAM_USUARIO, BRUDAM_SENHA).",
+
+  "url": "https://COLOQUE-AQUI.brudam.com.br/api/v1/tela376",
+  "metodo": "GET",
+
+  "autenticacao": "bearer",
+  "_autenticacao_opcoes": "bearer = Authorization: Bearer <token> | header = token num cabeçalho próprio (nome_header) | query = token na URL (nome_param) | basic = usuário e senha | login = primeiro chama login.url para pegar o token",
+  "nome_header": "token",
+  "nome_param": "token",
+  "login": {
+    "url": "https://COLOQUE-AQUI.brudam.com.br/api/v1/acesso/auth/login",
+    "corpo": { "usuario": "{usuario}", "senha": "{senha}" },
+    "campo_token": "access_key"
+  },
+
+  "parametros": { "data_inicial": "{inicio}", "data_final": "{fim}" },
+  "formato_data": "DD/MM/YYYY",
+  "caminho_lista": "",
+  "paginacao": { "ativa": false, "param_pagina": "pagina", "primeira": 1, "max_paginas": 200 },
+
+  "meses": 3,
+  "meta": 96,
+
+  "campos": {
+    "md":           ["md", "minuta", "numero_md", "nr_minuta", "documento", "MD"],
+    "agente":       ["agente", "agente_entrega", "responsavel", "resp", "parceiro", "redespacho", "AGENTE", "RESPONSAVEL"],
+    "pagador":      ["pagador", "cliente_pagador", "tomador", "PAGADOR"],
+    "destinatario": ["destinatario", "dest", "DESTINATARIO"],
+    "cidade":       ["cidade_destino", "cidade", "CIDADE"],
+    "uf":           ["uf_destino", "uf", "UF"],
+    "data_prevista":["data_prev_entrega", "data_previsao_entrega", "previsao_entrega", "dt_prev_entrega", "DATA PREV. ENTREGA"],
+    "data_entrega": ["data_entrega", "dt_entrega", "DATA ENTREGA"],
+    "status":       ["status_prazo", "situacao_prazo", "status", "STATUS"]
+  },
+
+  "status_sucesso": ["NO PRAZO", "ENTREGUE NO PRAZO", "INEFICIENCIA DO CLIENTE", "INEFICIENCIA CLIENTE"],
+  "status_fora":    ["FORA DO PRAZO", "ENTREGUE FORA DO PRAZO", "ATRASADO", "EM ATRASO"],
+  "status_ignorar": ["CANCELADO", "CANCELADA", "DEVOLVIDO"]
+}
