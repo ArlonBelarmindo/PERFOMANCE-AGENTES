@@ -106,6 +106,9 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 .mt th.ord:hover{color:var(--t1)}
 .chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer;align-self:center}
 .chk input{accent-color:var(--or);width:15px;height:15px}
+.ubtn{background:var(--or);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ubtn:hover{background:var(--or2)}
+.ubtn:disabled{background:var(--bg3);color:var(--t2);cursor:default;border:1px solid var(--bd)}
 .ptag{display:inline-block;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--or);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600}
 </style>
 
@@ -122,8 +125,9 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <div id="vD" hidden>
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
-    <div class="hr"><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
+    <div class="hr"><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
   <div class="mn gut">
+    <div class="nota" id="updMsg" role="status" hidden></div>
     <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente + Entregue no dia previsto (mesmo ap&oacute;s o hor&aacute;rio) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
     <div class="flt" role="group" aria-label="Período de análise">
       <div class="fg"><label>Per&iacute;odo</label>
@@ -411,6 +415,36 @@ function mkTabs(){var c=cur,p=c.prev;
 function swTab(i){document.querySelectorAll(".tab").forEach(function(t,j){t.className="tab"+(j===i?" on":"");});document.querySelectorAll(".tc").forEach(function(t,j){t.hidden=j!==i;});}
 
 $("fLogin").addEventListener("submit",function(e){e.preventDefault();if(!D)return;login();});
+/* ---- botão "Atualizar agora": dispara a tarefa agendada de atualização (só no dash do Claude) ---- */
+var TAREFA="trig_019DqVFAu3yNZfXkUAe1N9G3",ESPERA_MIN=15;
+function msgUpd(t,cor){var m=$("updMsg");m.textContent=t;m.style.color=cor||"var(--t2)";m.hidden=!t;}
+function ultimoDisparo(){try{return +localStorage.getItem("ag_upd")||0;}catch(e){return 0;}}
+function travaBotao(){var b=$("btnUpd"),passou=(Date.now()-ultimoDisparo())/60000;
+  if(passou<ESPERA_MIN){b.disabled=true;var h=new Date(ultimoDisparo());b.textContent="Atualizando…";msgUpd("Atualização pedida às "+String(h.getHours()).padStart(2,"0")+":"+String(h.getMinutes()).padStart(2,"0")+". Leva de 10 a 15 minutos; o dash recarrega sozinho com os dados novos.","var(--am)");setTimeout(travaBotao,30000);}
+  else{b.disabled=false;b.textContent="⟳ Atualizar agora";if($("updMsg").style.color==="var(--am)")msgUpd("");}}
+async function atualizarAgora(){
+  var mcp=window.claude&&await window.claude.use("mcp");
+  if(!mcp){msgUpd("O botão funciona só no dash aberto no Claude.","var(--am)");return;}
+  var b=$("btnUpd");b.disabled=true;b.textContent="Enviando…";msgUpd("");
+  try{
+    await mcp.callTool("Claude Code Remote","fire_trigger",{trigger_id:TAREFA,text:"Atualização pedida pelo botão \"Atualizar agora\" do dash."},{cache:false});
+    try{localStorage.setItem("ag_upd",String(Date.now()));}catch(e){}
+    travaBotao();
+  }catch(e){
+    b.disabled=false;b.textContent="⟳ Atualizar agora";
+    var c=e&&e.code,t={
+      approval_required:"Para atualizar, permita que o dash use o conector Claude Code Remote quando o Claude perguntar.",
+      not_in_manifest:"O acesso ao conector Claude Code Remote foi recusado para este dash. Libere no menu Permissões do artefato.",
+      server_not_connected:"O conector Claude Code Remote não está disponível na sua conta. Adicione em claude.ai → Configurações → Conectores.",
+      needs_reauth:"Reconecte o Claude Code Remote em claude.ai → Configurações → Conectores e tente de novo.",
+      blocked_by_policy:"A política da sua organização bloqueia esta ação.",
+      server_unavailable:"O serviço não respondeu. A atualização pode ter sido pedida mesmo assim; espere uns minutos antes de tentar de novo.",
+      tool_error:"A tarefa de atualização recusou o pedido: "+(e.message||"")
+    }[c]||"Não foi possível pedir a atualização ("+(c||"erro")+"). Os horários automáticos continuam valendo.";
+    msgUpd(t,"var(--rd)");
+  }
+}
+(async function(){var mcp=window.claude&&await window.claude.use("mcp");if(mcp){$("updBox").hidden=false;travaBotao();}})();
 carregar();
 </script>
 </body></html>
