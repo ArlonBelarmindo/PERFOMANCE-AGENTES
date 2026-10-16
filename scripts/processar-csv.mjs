@@ -1,7 +1,7 @@
 // Lê os CSVs do Brudam (Tela 376 - Relatório de Entregas, filtro Data Prev. Entrega)
 // e gera o dados.json do dash de agentes, com uma linha por entrega (o dash filtra por período).
 //
-// Uso: node scripts/processar-csv.mjs <pasta-ou-arquivos...> [--saida dados.json] [--meta 96]
+// Uso: node scripts/processar-csv.mjs <pasta-ou-arquivos...> [--saida dados.json] [--meta 96] [--de 20260101 --ate 20261231]
 //
 // Regras (iguais ao Performance Hub):
 //  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
@@ -16,6 +16,8 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(n); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const SAIDA = opt("--saida", "dados.json");
 const META = Number(opt("--meta", "96"));
+// limita o período (AAAAMMDD) para descartar datas digitadas erradas no Brudam (ex.: 2029)
+const DE = Number(opt("--de", "0")), ATE = Number(opt("--ate", "99999999"));
 
 // nomes possíveis da coluna de data de agendamento (o 376 padrão não traz; entra se vier no CSV)
 const COLS_AGENDAMENTO = ["DATA AGENDAMENTO", "AGENDAMENTO DATA", "DATA DE AGENDAMENTO", "AGENDAMENTO", "DT AGENDAMENTO", "DATA AGENDADA"];
@@ -91,7 +93,7 @@ const linhas = [];
 for (const r of porMd.values()) {
   if (r.sucesso === null) continue;
   const ref = r.agenda || r.prev;
-  if (!ref) continue;
+  if (!ref || ref < DE || ref > ATE) continue;
   if (r.agenda) comAgendamento++;
   // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status, entrega(AAAAMMDD)]
   linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega]);
