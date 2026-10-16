@@ -33,7 +33,8 @@ for (const a of args) {
   else arquivos.push(a);
 }
 if (!arquivos.length) { console.error("Nenhum CSV de entregas encontrado."); process.exit(1); }
-const carimbo = (f) => (path.basename(f).match(/(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})/) || [, "0"])[1];
+// ordem = data de geração no nome; "_ULTIMA" (arquivo do dia, sobrescrito a cada atualização) vence os horários do mesmo dia
+const carimbo = (f) => (path.basename(f).match(/(\d{4}_\d{2}_\d{2}(?:_\d{2}_\d{2}_\d{2}|_ULTIMA)?)/) || [, "0"])[1];
 arquivos.sort((a, b) => carimbo(a).localeCompare(carimbo(b)));
 
 const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
