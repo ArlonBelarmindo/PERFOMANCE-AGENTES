@@ -7,6 +7,7 @@
 //  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
 //  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" (ineficiência do cliente)
 //  - fora    = ENTREGUE FORA DO PRAZO, FORA DO PRAZO (sem ineficiência do cliente)
+//  - entregue no mesmo dia da previsão, mesmo após o horário limite = no prazo
 //  - pendentes ainda dentro do prazo (NO PRAZO, NO PRAZO (IN.CLIENTE), agendado) não entram na conta
 //  - AZ (azportoex) e PEX (pexlogistica) entram juntos; a MD é identificada por sistema + número
 //  - se a mesma MD do mesmo sistema aparece em mais de um arquivo, vale o arquivo gerado por último
@@ -59,7 +60,7 @@ function classificar(status) {
 }
 
 const porMd = new Map();
-let lidas = 0, comAgendamento = 0, colAgendaAchada = null;
+let lidas = 0, mesmoDia = 0, comAgendamento = 0, colAgendaAchada = null;
 // sistema de origem pelo nome do arquivo: azportoex_entregas_... → AZ, pexlogistica_entregas_... → PEX
 const SISTEMAS = { azportoex: "AZ", pexlogistica: "PEX" };
 const sistemaDe = (f) => { const m = path.basename(f).match(/([a-z0-9]+)_entregas_/i); const k = m ? m[1].toLowerCase() : "az"; return SISTEMAS[k] || k.toUpperCase(); };
@@ -101,6 +102,8 @@ for (const r of porMd.values()) {
   if (r.sucesso === null) continue;
   const ref = r.agenda || r.prev;
   if (!ref || ref < DE || ref > ATE) continue;
+  // regra PortoEX: entregue no mesmo dia da previsão, mesmo após o horário limite, conta como no prazo
+  if (r.sucesso === 0 && r.entrega && r.entrega === ref) { r.sucesso = 1; r.status = "ENTREGUE NO DIA (HORÁRIO EXCEDIDO)"; mesmoDia++; }
   if (r.agenda) comAgendamento++;
   // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status, entrega(AAAAMMDD)]
   linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega, id("sis", r.sistema)]);
@@ -121,5 +124,6 @@ fs.writeFileSync(SAIDA, JSON.stringify(dados));
 const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
 console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
 console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
+console.log(`Entregues no mesmo dia após o horário (passaram a contar no prazo): ${mesmoDia}`);
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
 console.log(`Tamanho: ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB · ${dic.ag.length} agentes · ${dic.dest.length} destinatários`);
