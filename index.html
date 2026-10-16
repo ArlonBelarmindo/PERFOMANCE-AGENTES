@@ -109,6 +109,10 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 .ubtn{background:var(--or);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .ubtn:hover{background:var(--or2)}
 .ubtn:disabled{background:var(--bg3);color:var(--t2);cursor:default;border:1px solid var(--bd)}
+.lembrar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2);margin:2px 0 6px;cursor:pointer}
+.lembrar input{accent-color:var(--or);width:16px;height:16px}
+.sair{background:none;border:1px solid var(--bd);color:var(--t2);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer}
+.sair:hover{color:var(--t1);border-color:var(--t2)}
 .ptag{display:inline-block;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--or);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600}
 </style>
 
@@ -118,6 +122,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
   <form id="fLogin">
     <div class="fi"><label for="iE">Usu&aacute;rio</label><input type="email" id="iE" placeholder="nome@portoex.com.br" autocomplete="username"></div>
     <div class="fi"><label for="iP">Senha</label><input type="password" id="iP" autocomplete="current-password"></div>
+    <label class="lembrar" for="iLembrar"><input type="checkbox" id="iLembrar"> Lembrar meu login neste navegador</label>
     <button class="btn" type="submit">Entrar</button>
   </form>
   <p class="hint" id="hintL">Brudam &bull; Tela 376 &bull; Previs&atilde;o de Entrega &bull; Meta: <span class="metaTx">96</span>%</p>
@@ -125,7 +130,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <div id="vD" hidden>
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
-    <div class="hr"><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
+    <div class="hr"><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
   <div class="mn gut">
     <div class="nota" id="updMsg" role="status" hidden></div>
     <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente + Entregue no dia previsto (mesmo ap&oacute;s o hor&aacute;rio) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
@@ -151,7 +156,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <div id="vC" hidden>
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
-    <div class="hr"><span class="ptag" id="pTag2"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
+    <div class="hr"><span class="ptag" id="pTag2"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
   <div class="mn gut">
     <button class="bk" onclick="goDash()">&#8592; Voltar</button>
     <div class="cn" id="cN"></div><div class="cm" id="cM"></div>
@@ -207,8 +212,9 @@ function carregar(){
     if(salvo&&salvo.modo){for(var k2 in salvo)if(salvo[k2]!=null)F[k2]=salvo[k2];if(D.meses.indexOf(F.mes)<0)F.mes=def;}
     $("fDtDe").min=$("fDtAte").min=dIso(D.min);$("fDtDe").max=$("fDtAte").max=dIso(mesFim(D.meses[D.meses.length-1]));
     pintarFiltro();aplicar();
-    var u=null;try{u=sessionStorage.getItem("ag_user");}catch(e){}
-    if(u){$("iE").value=u;login();}
+    var lemb=null,u=null;try{lemb=localStorage.getItem("ag_lembrar");u=sessionStorage.getItem("ag_user");}catch(e){}
+    if(lemb){$("iE").value=lemb;$("iLembrar").checked=true;login();}
+    else if(u){$("iE").value=u;login();}
   });
 }
 
@@ -291,8 +297,9 @@ function agregar(I,P){
     ufs:Object.keys(ufG).map(function(u){var g=ufG[u];return fecha({uf:u,total:g.total,sucesso:g.sucesso,fora:g.fora,agentes:Object.keys(g._ag).length});}).sort(function(a,b){return b.total-a.total;})};
 }
 
+function sair(){try{localStorage.removeItem("ag_lembrar");sessionStorage.removeItem("ag_user");}catch(x){}$("iP").value="";$("iLembrar").checked=false;$("vD").hidden=true;$("vC").hidden=true;$("vL").hidden=false;window.scrollTo(0,0);$("iE").focus();}
 function login(){var e=$("iE").value.trim();if(!e){$("iE").focus();return;}var nm=e.indexOf("@")>0?e.split("@")[0]:e;
-  try{sessionStorage.setItem("ag_user",e);}catch(x){}
+  try{sessionStorage.setItem("ag_user",e);if($("iLembrar").checked)localStorage.setItem("ag_lembrar",e);else localStorage.removeItem("ag_lembrar");}catch(x){}
   document.querySelectorAll(".hN").forEach(function(x){x.textContent=nm;});document.querySelectorAll(".hA").forEach(function(x){x.textContent=nm.slice(0,2).toUpperCase();});
   $("vL").hidden=true;goDash();}
 function goDash(){$("vC").hidden=true;$("vD").hidden=false;mkSum();mkTable(fcl);mkGlobal();window.scrollTo(0,0);}
