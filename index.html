@@ -140,7 +140,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
     </div>
     <div class="sg" id="sg"></div>
     <div class="sh"><div><div class="st" id="tituloRanking"></div><div class="ss">Clique no agente para ver detalhes</div></div><input class="srch" id="iBusca" type="text" placeholder="Buscar agente..." aria-label="Buscar agente"></div>
-    <div class="tw"><table><thead><tr><th>#</th><th>Agente de Entrega</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>vs Per&iacute;odo Ant.</th><th>Status</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>Agente de Entrega</th><th>Total</th><th>No Prazo</th><th>Entregue fora</th><th>Em aberto atrasada</th><th>Taxa</th><th>vs Per&iacute;odo Ant.</th><th>Status</th></tr></thead><tbody id="tb"></tbody></table></div>
     <div id="glob" style="margin-top:20px"></div>
   </div>
 </div>
@@ -255,7 +255,7 @@ $("fDtAte").addEventListener("change",function(){if(this.value){F.dtAte=isoN(thi
 
 /* ---- cálculo por agente ---- */
 function novo(){return {total:0,sucesso:0,fora:0};}
-function soma(o,s){o.total++;if(s)o.sucesso++;else o.fora++;}
+function soma(o,s,ab){o.total++;if(s)o.sucesso++;else{o.fora++;if(ab)o.fora_ab=(o.fora_ab||0)+1;else o.fora_ent=(o.fora_ent||0)+1;}}
 function fecha(o){o.taxa=taxa(o.sucesso,o.total);return o;}
 function lista(m,campo){return Object.keys(m).map(function(k){var o=m[k];o[campo]=o[campo]||k;return fecha(o);}).sort(function(a,b){return b.total-a.total||b.fora-a.fora;});}
 function agregar(I,P){
@@ -264,12 +264,12 @@ function agregar(I,P){
   D.linhas.forEach(function(l){
     if(F.base!=="todas"&&(sis[l[11]]||"AZ")!==F.base)return;
     var d=l[1];
-    if(d>=P.de&&d<=P.ate){soma(geralP,l[3]);var np=dic.ag[l[4]];soma(prevAg[np]||(prevAg[np]=novo()),l[3]);}
+    if(d>=P.de&&d<=P.ate){soma(geralP,l[3],!l[10]);var np=dic.ag[l[4]];soma(prevAg[np]||(prevAg[np]=novo()),l[3]);}
     if(d<I.de||d>I.ate)return;
-    var s=l[3],nome=dic.ag[l[4]],uf=l[8];
-    soma(geral,s);if(nome==="SEM AGENTE INFORMADO")semAg++;
+    var ab=!l[10],s=l[3],nome=dic.ag[l[4]],uf=l[8];
+    soma(geral,s,ab);if(nome==="SEM AGENTE INFORMADO")semAg++;
     var a=ag[nome]||(ag[nome]={name:nome,total:0,sucesso:0,fora:0,ufs:{},dest:{},pag:{},mds:[]});
-    soma(a,s);
+    soma(a,s,ab);
     soma(a.ufs[uf]||(a.ufs[uf]=novo()),s);
     var dn=dic.dest[l[6]]||"—";soma(a.dest[dn]||(a.dest[dn]={total:0,sucesso:0,fora:0,cidade:dic.cid[l[7]],uf:uf}),s);
     var pn=dic.pag[l[5]]||"—";soma(a.pag[pn]||(a.pag[pn]=novo()),s);
@@ -282,7 +282,7 @@ function agregar(I,P){
     var p=prevAg[k];a.prev=p?fecha({total:p.total,sucesso:p.sucesso,fora:p.fora}):null;return a;});
   agentes.sort(function(x,y){return y.total-x.total||y.fora-x.fora;});
   agentes.forEach(function(a,i){a.id=i+1;a.rank=i+1;});
-  var R=fecha(geral);R.agentes=agentes.filter(function(a){return a.name!=="SEM AGENTE INFORMADO";}).length;R.sem_agente=semAg;
+  var R=fecha(geral);R.fora_ent=geral.fora_ent||0;R.fora_ab=geral.fora_ab||0;R.agentes=agentes.filter(function(a){return a.name!=="SEM AGENTE INFORMADO";}).length;R.sem_agente=semAg;
   return {label:I.label,labelPrev:P.label,parcial:(D.hoje||0)>=I.de&&(D.hoje||0)<=I.ate,resumo:R,resumo_prev:geralP.total?fecha(geralP):null,agentes:agentes,
     ufs:Object.keys(ufG).map(function(u){var g=ufG[u];return fecha({uf:u,total:g.total,sucesso:g.sucesso,fora:g.fora,agentes:Object.keys(g._ag).length});}).sort(function(a,b){return b.total-a.total;})};
 }
@@ -300,7 +300,8 @@ function mkSum(){var R=M.resumo,P=M.resumo_prev;
   $("sg").innerHTML=
     sc("or","Total Entregas",nf(R.total),P?"vs período ant.":"sem período anterior",dT&&dT.good,dT&&dT.txt)+
     sc("gn","No Prazo",nf(R.sucesso),"inclui ineficiência do cliente")+
-    sc("rd","Fora do Prazo",nf(R.fora),(P?"vs período ant.":"")+(dF?" <span class=\""+(dF.good?"up":"dn")+"\">"+dF.txt+"</span>":"")+(R.fora?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora?"showFora()":"")+
+    sc("rd","Entregue fora do prazo",nf(R.fora_ent),"de "+nf(R.fora)+" fora do prazo"+(dF?" <span class=\""+(dF.good?"up":"dn")+"\">"+dF.txt+"</span>":"")+(R.fora_ent?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora_ent?"showFora('ent')":"")+
+    sc("am","Em aberto e atrasadas",nf(R.fora_ab),"ainda n\u00e3o entregues, prazo vencido"+(R.fora_ab?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora_ab?"showFora('ab')":"")+
     sc(R.taxa>=META?"gn":"am","Taxa Geral",pf(R.taxa),"meta "+META+"%",dS&&dS.good,dS&&dS.txt)+
     sc("bl","Agentes com CNPJ",nf(R.agentes_cnpj),nf(R.ent_sem_cnpj)+" entregas de pessoa física ou sem cadastro");}
 
@@ -312,11 +313,12 @@ function mkTable(cl){var h="",lim=Math.min(cl.length,30);
       "<td><span class=\"rb "+(i<3?"r"+(i+1):"")+"\">"+c.rank+"</span></td>"+
       "<td style=\"font-weight:600;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"+(sem?"color:var(--t2);font-style:italic":"")+"\" title=\""+esc(c.name)+"\">"+esc(c.name)+"</td>"+
       "<td>"+nf(c.total)+"</td><td style=\"color:var(--gn)\">"+nf(c.sucesso)+"</td>"+
-      "<td style=\"color:"+(c.fora>0?"var(--rd)":"var(--gn)")+";font-weight:600\">"+nf(c.fora)+"</td>"+
+      "<td style=\"color:"+(c.fora_ent>0?"var(--rd)":"var(--gn)")+";font-weight:600\">"+nf(c.fora_ent||0)+"</td>"+
+      "<td style=\"color:"+(c.fora_ab>0?"var(--am)":"var(--gn)")+";font-weight:600\">"+nf(c.fora_ab||0)+"</td>"+
       "<td style=\"white-space:nowrap\">"+(tx==null?"—":"<span class=\"bb\"><span class=\"bf\" style=\"display:block;width:"+tx+"%;background:"+bc+"\"></span></span><span style=\"color:"+bc+";font-weight:700\">"+pf(tx)+"</span>")+"</td>"+
       "<td style=\"color:"+vsc+";font-size:12px;white-space:nowrap\">"+vs+"</td>"+
       "<td>"+stag(tx)+"</td></tr>";}
-  if(!lim)h="<tr><td colspan=\"8\" style=\"text-align:center;color:var(--t2);padding:24px\">Nenhuma entrega neste período.</td></tr>";
+  if(!lim)h="<tr><td colspan=\"9\" style=\"text-align:center;color:var(--t2);padding:24px\">Nenhuma entrega neste período.</td></tr>";
   $("tb").innerHTML=h;}
 $("iBusca").addEventListener("input",function(){var q=this.value.toLowerCase();fcl=CL.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0;});mkTable(fcl);});
 
@@ -325,23 +327,25 @@ function tabUF(ufs,onclick){var r="";for(var i=0;i<ufs.length;i++){var u=ufs[i];
   return r;}
 function mkGlobal(){$("glob").innerHTML="<div class=\"cc\"><div class=\"ct\">Performance por UF de destino</div><div class=\"cs\">"+esc(M.label)+" · clique na UF para ver as MDs fora do prazo</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>UF</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Agentes</th><th>Status</th></tr></thead><tbody>"+tabUF(M.ufs||[],true)+"</tbody></table></div></div>";}
 /* ---- lista de todas as minutas fora do prazo ---- */
-var FORA=[],FORD={k:"_d",asc:true},FQ="";
-function showFora(){
-  FORA=[];M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
+var FORA=[],FORD={k:"_d",asc:true},FQ="",FT="todas";
+function showFora(tipo){FT=tipo||"todas";
+  FORA=[];M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_ab:!m._e,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
   FQ="";FORD={k:"_d",asc:true};
   var cols=[["md","MD"],["agente","Agente"],["pagador","Pagador"],["dest","Destinatário"],["cidade","Cidade"],["uf","UF"],["_d","Prev. Entrega"],["_e","Entrega"],["_atr","Dias de atraso"],["status","Status"]];
   var el=document.createElement("div");el.className="modal";el.id="mdModal";el.onclick=function(e){if(e.target===el)el.remove();};
   el.innerHTML="<div class=\"mbox wide\" role=\"dialog\" aria-label=\"Minutas fora do prazo\"><div class=\"mhd\"><div><div class=\"ct\">Minutas fora do prazo</div><div class=\"cs\" style=\"margin:0\" id=\"foraInfo\"></div></div><button class=\"x\" onclick=\"document.getElementById('mdModal').remove()\">Fechar</button></div>"+
-    "<div class=\"mtools\"><input id=\"foraBusca\" type=\"search\" placeholder=\"Filtrar por MD, agente, pagador, destinatário, cidade, UF ou status...\" aria-label=\"Filtrar minutas\"><button class=\"mbtn\" id=\"foraCopiar\" type=\"button\">Copiar para Excel</button><span class=\"mmsg\" id=\"foraMsg\" role=\"status\"></span></div>"+
+    "<div class=\"mtools\"><div class=\"seg\" id=\"segFora\"><button type=\"button\" data-t=\"todas\">Todas</button><button type=\"button\" data-t=\"ent\">Entregues fora do prazo</button><button type=\"button\" data-t=\"ab\">Em aberto e atrasadas</button></div><input id=\"foraBusca\" type=\"search\" placeholder=\"Filtrar por MD, agente, pagador, destinatário, cidade, UF ou status...\" aria-label=\"Filtrar minutas\"><button class=\"mbtn\" id=\"foraCopiar\" type=\"button\">Copiar para Excel</button><span class=\"mmsg\" id=\"foraMsg\" role=\"status\"></span></div>"+
     "<div class=\"ox\"><table class=\"mt\"><thead><tr>"+cols.map(function(c){return "<th class=\"ord\" data-k=\""+c[0]+"\" data-t=\""+c[1]+"\">"+c[1]+"</th>";}).join("")+"</tr></thead><tbody id=\"foraTb\"></tbody></table></div></div>";
   document.body.appendChild(el);
   el.querySelectorAll("th.ord").forEach(function(th){th.addEventListener("click",function(){var k=th.dataset.k;FORD=FORD.k===k?{k:k,asc:!FORD.asc}:{k:k,asc:true};pintaFora();});});
   $("foraBusca").addEventListener("input",function(){FQ=this.value.toLowerCase();pintaFora();});
   $("foraCopiar").addEventListener("click",copiaFora);
+  el.querySelectorAll("#segFora button").forEach(function(b){b.addEventListener("click",function(){FT=b.dataset.t;pintaFora();});});
   pintaFora();$("foraBusca").focus();
 }
 function foraFiltradas(){
-  var l=FQ?FORA.filter(function(r){return [r.md,r.agente,r.pagador,r.dest,r.cidade,r.uf,r.status].join(" ").toLowerCase().indexOf(FQ)>=0;}):FORA.slice();
+  var base=FT==="todas"?FORA:FORA.filter(function(r){return FT==="ab"?r._ab:!r._ab;});
+  var l=FQ?base.filter(function(r){return [r.md,r.agente,r.pagador,r.dest,r.cidade,r.uf,r.status].join(" ").toLowerCase().indexOf(FQ)>=0;}):base.slice();
   var k=FORD.k,dir=FORD.asc?1:-1;
   l.sort(function(a,b){var x=a[k],y=b[k];if(x==null||x==="")x=-1e12;if(y==null||y==="")y=-1e12;return (x>y?1:x<y?-1:0)*dir;});
   return l;
@@ -350,7 +354,10 @@ function pintaFora(){
   var l=foraFiltradas(),h="";
   l.forEach(function(r){h+="<tr><td style=\"color:var(--rd);font-weight:700;white-space:nowrap\">"+esc(r.md)+"</td><td style=\"font-size:12px\">"+esc(r.agente)+"</td><td style=\"font-size:12px;color:var(--t2)\">"+esc(r.pagador)+"</td><td style=\"font-size:12px\">"+esc(r.dest)+"</td><td style=\"font-size:12px\">"+esc(r.cidade)+"</td><td>"+esc(r.uf)+"</td><td style=\"white-space:nowrap\">"+esc(r.data)+"</td><td style=\"white-space:nowrap\">"+(r.entrega?esc(r.entrega):"<span style=\"color:var(--am)\">em aberto</span>")+"</td><td style=\"text-align:right\">"+(r._atr==null?"\u2014":r._atr)+"</td><td><span class=\"tg trd\">"+esc(r.status)+"</span></td></tr>";});
   $("foraTb").innerHTML=h||"<tr><td colspan=\"10\" style=\"text-align:center;color:var(--t2);padding:20px\">Nenhuma minuta encontrada.</td></tr>";
-  $("foraInfo").textContent=nf(l.length)+(l.length!==FORA.length?" de "+nf(FORA.length):"")+" minuta(s) \u00b7 "+M.label+" \u00b7 "+(F.base==="todas"?"AZ + PEX":F.base);
+  var nEnt=FORA.filter(function(r){return !r._ab;}).length,nAb=FORA.length-nEnt,tot={todas:FORA.length,ent:nEnt,ab:nAb},nom={todas:"Todas",ent:"Entregues fora do prazo",ab:"Em aberto e atrasadas"};
+  document.querySelectorAll("#segFora button").forEach(function(b){b.className=b.dataset.t===FT?"on":"";b.textContent=nom[b.dataset.t]+" ("+nf(tot[b.dataset.t])+")";});
+  document.querySelector("#mdModal .ct").textContent=FT==="ab"?"Minutas em aberto e atrasadas":FT==="ent"?"Minutas entregues fora do prazo":"Minutas fora do prazo";
+  $("foraInfo").textContent=nf(l.length)+(l.length!==tot[FT]?" de "+nf(tot[FT]):"")+" minuta(s) \u00b7 "+M.label+" \u00b7 "+(F.base==="todas"?"AZ + PEX":F.base)+(FT==="ab"?" \u00b7 dias de atraso contados at\u00e9 hoje":"");
   document.querySelectorAll("#mdModal th.ord").forEach(function(th){th.textContent=th.dataset.t+(th.dataset.k===FORD.k?(FORD.asc?" \u25B2":" \u25BC"):"");});
 }
 function copiaFora(){
@@ -375,7 +382,7 @@ function mkKPIs(){var c=cur,p=c.prev,tc=cor(c.taxa);
   var dE=p?delta(c.total,p.total,"%"):null,dT=p?delta(c.taxa,p.taxa,"pp"):null,dF=p?delta(c.fora,p.fora,"",true):null;
   $("kpis").innerHTML=kp("Total Entregas","var(--or)",nf(c.total),dE&&dE.txt+" vs ant.",dE&&dE.good)+
     kp("No Prazo",tc,nf(c.sucesso),dT&&dT.txt+" vs ant.",dT&&dT.good)+
-    kp("Fora do Prazo",c.fora>0?"var(--rd)":"var(--gn)",nf(c.fora),dF?dF.txt.replace(",0","")+" vs ant.":(p?"":"sem período anterior"),dF&&dF.good)+
+    kp("Fora do Prazo",c.fora>0?"var(--rd)":"var(--gn)",nf(c.fora)+"<span style=\"font-size:12px;color:var(--t2);font-family:inherit;font-weight:500\"> \u00b7 "+nf(c.fora_ent||0)+" entregues \u00b7 "+nf(c.fora_ab||0)+" em aberto</span>",dF?dF.txt.replace(",0","")+" vs ant.":(p?"":"sem período anterior"),dF&&dF.good)+
     kp("Taxa",tc,pf(c.taxa),c.taxa==null?"":(c.taxa>=META?"acima da meta":"abaixo da meta de "+META+"%"),c.taxa!=null&&c.taxa>=META)+
     kp("UFs atendidas","var(--or2)",nf((c.ufs||[]).length),nf((c.pagadores||[]).length)+" pagador(es)",true);}
 function mkDonut(suc,fora,tx){var circ=2*Math.PI*65,col=tx>=META?"#10B981":tx>=85?"#F59E0B":"#EF4444",dash=(suc/(suc+Math.max(fora,0.001)))*circ;
@@ -393,7 +400,7 @@ function mkTabs(){var c=cur,p=c.prev;
     "<div class=\"cc\"><div class=\"ct\">Pagadores com mais atrasos</div><div class=\"cs\">MDs fora do prazo por cliente pagador</div>"+barras((c.pagadores||[]).slice().sort(function(a,b){return b.fora-a.fora;}).filter(function(x){return x.fora>0;}),"fora","name")+"</div></div>";
   var mds=c.mds_fora||[],mr="";
   mds.forEach(function(m){mr+="<tr><td style=\"color:var(--rd);font-weight:700\">"+esc(m.md)+"</td><td style=\"font-size:12px\">"+esc(m.dest)+"</td><td>"+esc(m.cidade)+"</td><td>"+esc(m.uf)+"</td><td style=\"white-space:nowrap\">"+esc(m.data)+"</td><td><span class=\"tg trd\">"+esc(m.status)+"</span></td><td style=\"font-size:12px;color:var(--t2)\">"+esc(m.pagador)+"</td></tr>";});
-  $("t1").innerHTML="<div class=\"cc\">"+(mds.length?"<div class=\"md-alert\">"+mds.length+" entrega(s) fora do prazo</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>MD</th><th>Destinatário</th><th>Cidade</th><th>UF</th><th>Prev./Agend.</th><th>Status</th><th>Pagador</th></tr></thead><tbody>"+mr+"</tbody></table></div>":"<div style=\"color:var(--gn);padding:20px;text-align:center;font-size:15px;font-weight:600\">✓ Nenhuma entrega fora do prazo!</div>")+"</div>";
+  $("t1").innerHTML="<div class=\"cc\">"+(mds.length?"<div class=\"md-alert\">"+mds.length+" entrega(s) fora do prazo: "+nf(c.fora_ent||0)+" entregues fora do prazo e "+nf(c.fora_ab||0)+" em aberto e atrasadas</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>MD</th><th>Destinatário</th><th>Cidade</th><th>UF</th><th>Prev./Agend.</th><th>Status</th><th>Pagador</th></tr></thead><tbody>"+mr+"</tbody></table></div>":"<div style=\"color:var(--gn);padding:20px;text-align:center;font-size:15px;font-weight:600\">✓ Nenhuma entrega fora do prazo!</div>")+"</div>";
   $("t2").innerHTML="<div class=\"cc\"><div class=\"ct\">Performance por UF</div><div class=\"cs\">"+(c.ufs||[]).length+" estado(s)</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>UF</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Status</th></tr></thead><tbody>"+tabUF(c.ufs||[],false)+"</tbody></table></div></div>";
   function tab(arr,campo,titulo,col){var r="";arr.forEach(function(d,i){r+="<tr><td style=\"color:var(--t2)\">"+(i+1)+"</td><td style=\"font-size:12px\">"+esc(d[campo])+"</td><td>"+nf(d.total)+"</td><td style=\"color:var(--gn)\">"+nf(d.sucesso)+"</td><td style=\"color:"+(d.fora>0?"var(--rd)":"var(--gn)")+"\">"+nf(d.fora)+"</td><td style=\"color:"+cor(d.taxa)+";font-weight:700\">"+pf(d.taxa)+"</td><td>"+stag(d.taxa)+"</td></tr>";});
     return "<div class=\"cc\"><div class=\"ct\">"+titulo+" ("+arr.length+")</div><div class=\"cs\">"+esc(M.label)+"</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>#</th><th>"+col+"</th><th>Total</th><th>No Prazo</th><th>Fora</th><th>Taxa</th><th>Status</th></tr></thead><tbody>"+r+"</tbody></table></div></div>";}
