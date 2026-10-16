@@ -104,6 +104,8 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 .mmsg{font-size:12px;color:var(--gn)}
 .mt th.ord{cursor:pointer;user-select:none}
 .mt th.ord:hover{color:var(--t1)}
+.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer;align-self:center}
+.chk input{accent-color:var(--or);width:15px;height:15px}
 .ptag{display:inline-block;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--or);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600}
 </style>
 
@@ -133,6 +135,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
       <div class="fg" id="gMesAte" hidden><label for="fMesAte">At&eacute;</label><select id="fMesAte"></select></div>
       <div class="fg" id="gDtDe" hidden><label for="fDtDe">De</label><input type="date" id="fDtDe"></div>
       <div class="fg" id="gDtAte" hidden><label for="fDtAte">At&eacute;</label><input type="date" id="fDtAte"></div>
+      <label class="chk" for="fPF"><input type="checkbox" id="fPF"> Incluir pessoa f&iacute;sica e agentes sem cadastro no ranking</label>
       <div class="fnote" id="fNote"></div>
     </div>
     <div class="sg" id="sg"></div>
@@ -185,7 +188,7 @@ function carregar(){
   .catch(function(){return null;})
   .then(function(d){
     if(!d||!d.linhas||!d.linhas.length){$("hintL").textContent="Não foi possível carregar os dados (dados.json). Rode a atualização do Brudam e recarregue a página.";return;}
-    D=d;META=d.meta||96;
+    D=d;META=d.meta||96;D.tipo={};D.doc={};(d.dic.ag||[]).forEach(function(n,i){D.tipo[n]=(d.dic.agTipo||[])[i]||"";D.doc[n]=(d.dic.agDoc||[])[i]||"";});
     document.querySelectorAll(".metaTx").forEach(function(e){e.textContent=META;});
     var ms={};d.linhas.forEach(function(l){var s=String(l[1]);ms[s.slice(0,4)+"-"+s.slice(4,6)]=1;});
     D.meses=Object.keys(ms).sort();
@@ -221,16 +224,21 @@ function pintarFiltro(){
   document.querySelectorAll("#segModo button").forEach(function(b){b.className=b.dataset.m===F.modo?"on":"";b.setAttribute("aria-pressed",b.dataset.m===F.modo);});
   document.querySelectorAll("#segBase button").forEach(function(b){b.className=b.dataset.b===F.base?"on":"";b.setAttribute("aria-pressed",b.dataset.b===F.base);});
   $("gMes").hidden=F.modo!=="mes";$("gMesDe").hidden=$("gMesAte").hidden=F.modo!=="meses";$("gDtDe").hidden=$("gDtAte").hidden=F.modo!=="datas";
-  $("fMes").value=F.mes;$("fMesDe").value=F.mesDe;$("fMesAte").value=F.mesAte;$("fDtDe").value=dIso(F.dtDe);$("fDtAte").value=dIso(F.dtAte);
+  $("fPF").checked=!!F.pf;$("fMes").value=F.mes;$("fMesDe").value=F.mesDe;$("fMesAte").value=F.mesAte;$("fDtDe").value=dIso(F.dtDe);$("fDtAte").value=dIso(F.dtAte);
 }
 function aplicar(){
   try{localStorage.setItem("ag_filtro",JSON.stringify(F));}catch(e){}
   var I=intervalo(),P=intervaloAnterior(I);
-  M=agregar(I,P);CL=M.agentes.slice();fcl=CL.slice();
+  M=agregar(I,P);
+  CL=M.agentes.filter(function(a){return F.pf||D.tipo[a.name]==="CNPJ";});
+  CL.forEach(function(a,i){a.rank=i+1;});
+  M.resumo.agentes_cnpj=M.agentes.filter(function(a){return D.tipo[a.name]==="CNPJ";}).length;
+  M.resumo.ent_sem_cnpj=M.agentes.filter(function(a){return D.tipo[a.name]!=="CNPJ";}).reduce(function(x,a){return x+a.total;},0);
+  fcl=CL.slice();
   $("pTag1").textContent=$("pTag2").textContent=I.label+" · "+(F.base==="todas"?"AZ + PEX":F.base);
   $("lastUpdate").textContent="Atualizado em "+D.gerado_em;
   var bl=F.base==="todas"?"AZ + PEX":F.base;
-  $("tituloRanking").textContent="Top 30 Agentes — "+I.label+" · "+bl;
+  $("tituloRanking").textContent="Top 30 Agentes"+(F.pf?"":" com CNPJ")+" — "+I.label+" · "+bl;
   $("fNote").textContent=nf(M.resumo.total)+" entregas no período · comparando com "+P.label+(M.parcial?" · período ainda em andamento":"")+" · dados de "+dBr(D.min)+" a "+dBr(D.max);
   $("iBusca").value="";
   if(!$("vD").hidden){mkSum();mkTable(fcl);mkGlobal();}
@@ -239,6 +247,7 @@ function aplicar(){
 document.querySelectorAll("#segModo button").forEach(function(b){b.addEventListener("click",function(){F.modo=b.dataset.m;pintarFiltro();aplicar();});});
 document.querySelectorAll("#segBase button").forEach(function(b){b.addEventListener("click",function(){F.base=b.dataset.b;pintarFiltro();aplicar();});});
 $("fMes").addEventListener("change",function(){F.mes=this.value;aplicar();});
+$("fPF").addEventListener("change",function(){F.pf=this.checked;aplicar();});
 $("fMesDe").addEventListener("change",function(){F.mesDe=this.value;aplicar();});
 $("fMesAte").addEventListener("change",function(){F.mesAte=this.value;aplicar();});
 $("fDtDe").addEventListener("change",function(){if(this.value){F.dtDe=isoN(this.value);aplicar();}});
@@ -293,7 +302,7 @@ function mkSum(){var R=M.resumo,P=M.resumo_prev;
     sc("gn","No Prazo",nf(R.sucesso),"inclui ineficiência do cliente")+
     sc("rd","Fora do Prazo",nf(R.fora),(P?"vs período ant.":"")+(dF?" <span class=\""+(dF.good?"up":"dn")+"\">"+dF.txt+"</span>":"")+(R.fora?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora?"showFora()":"")+
     sc(R.taxa>=META?"gn":"am","Taxa Geral",pf(R.taxa),"meta "+META+"%",dS&&dS.good,dS&&dS.txt)+
-    sc("bl","Agentes",nf(R.agentes),R.sem_agente?nf(R.sem_agente)+" entregas sem agente":"com entregas no período");}
+    sc("bl","Agentes com CNPJ",nf(R.agentes_cnpj),nf(R.ent_sem_cnpj)+" entregas de pessoa física ou sem cadastro");}
 
 function mkTable(cl){var h="",lim=Math.min(cl.length,30);
   for(var i=0;i<lim;i++){var c=cl[i],tx=c.taxa,bc=cor(tx),vs="novo",vsc="var(--t2)";
@@ -318,7 +327,7 @@ function mkGlobal(){$("glob").innerHTML="<div class=\"cc\"><div class=\"ct\">Per
 /* ---- lista de todas as minutas fora do prazo ---- */
 var FORA=[],FORD={k:"_d",asc:true},FQ="";
 function showFora(){
-  FORA=[];CL.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
+  FORA=[];M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
   FQ="";FORD={k:"_d",asc:true};
   var cols=[["md","MD"],["agente","Agente"],["pagador","Pagador"],["dest","Destinatário"],["cidade","Cidade"],["uf","UF"],["_d","Prev. Entrega"],["_e","Entrega"],["_atr","Dias de atraso"],["status","Status"]];
   var el=document.createElement("div");el.className="modal";el.id="mdModal";el.onclick=function(e){if(e.target===el)el.remove();};
@@ -352,7 +361,7 @@ function copiaFora(){
   try{navigator.clipboard.writeText(txt).then(ok,falha);}catch(e){falha();}
 }
 function showUF(uf){var rows="",n=0;
-  CL.forEach(function(a){(a.mds_fora||[]).forEach(function(m){if(m.uf!==uf)return;n++;rows+="<tr><td style=\"color:var(--rd);font-weight:700\">"+esc(m.md)+"</td><td style=\"font-size:12px\">"+esc(a.name)+"</td><td style=\"font-size:12px\">"+esc(m.dest)+"</td><td>"+esc(m.data)+"</td><td style=\"font-size:12px;color:var(--t2)\">"+esc(m.pagador)+"</td><td><span class=\"tg trd\">"+esc(m.status)+"</span></td></tr>";});});
+  M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){if(m.uf!==uf)return;n++;rows+="<tr><td style=\"color:var(--rd);font-weight:700\">"+esc(m.md)+"</td><td style=\"font-size:12px\">"+esc(a.name)+"</td><td style=\"font-size:12px\">"+esc(m.dest)+"</td><td>"+esc(m.data)+"</td><td style=\"font-size:12px;color:var(--t2)\">"+esc(m.pagador)+"</td><td><span class=\"tg trd\">"+esc(m.status)+"</span></td></tr>";});});
   var el=document.createElement("div");el.className="modal";el.id="mdModal";el.onclick=function(e){if(e.target===el)el.remove();};
   el.innerHTML="<div class=\"mbox\" role=\"dialog\" aria-label=\"MDs fora do prazo\"><div class=\"mhd\"><div><div class=\"ct\">"+esc(uf)+" · MDs fora do prazo</div><div class=\"cs\" style=\"margin:0\">"+n+" MD(s) · "+esc(M.label)+"</div></div><button class=\"x\" onclick=\"document.getElementById('mdModal').remove()\">Fechar</button></div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>MD</th><th>Agente</th><th>Destinatário</th><th>Prev./Agend.</th><th>Pagador</th><th>Status</th></tr></thead><tbody>"+(rows||"<tr><td colspan=\"6\" style=\"color:var(--gn);text-align:center\">Nenhuma MD fora do prazo.</td></tr>")+"</tbody></table></div></div>";
   document.body.appendChild(el);el.querySelector(".x").focus();}
@@ -360,7 +369,7 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=$("md
 
 function goAgente(id){cur=null;for(var i=0;i<CL.length;i++)if(CL[i].id===id){cur=CL[i];break;}if(!cur)return;
   $("vD").hidden=true;$("vC").hidden=false;mkHead();mkKPIs();mkTabs();swTab(0);window.scrollTo(0,0);}
-function mkHead(){$("cN").textContent=cur.name;$("cM").textContent="Agente de entrega · "+M.label+" · #"+cur.rank+"/"+CL.length+" em volume · Meta: "+META+"%";}
+function mkHead(){$("cN").textContent=cur.name;var tp=D.tipo[cur.name],dc=D.doc[cur.name];$("cM").textContent="Agente de entrega · "+(tp?tp+" "+dc:"sem cadastro de agente")+" · "+M.label+" · #"+cur.rank+"/"+CL.length+" em volume · Meta: "+META+"%";}
 function kp(lb,col,val,chg,good){return "<div class=\"kp\"><div class=\"kl\">"+lb+"</div><div class=\"kv\" style=\"color:"+col+"\">"+val+"</div><div class=\"kc\" style=\"color:"+(chg?(good?"var(--gn)":"var(--rd)"):"var(--t2)")+"\">"+(chg||"&nbsp;")+"</div></div>";}
 function mkKPIs(){var c=cur,p=c.prev,tc=cor(c.taxa);
   var dE=p?delta(c.total,p.total,"%"):null,dT=p?delta(c.taxa,p.taxa,"pp"):null,dF=p?delta(c.fora,p.fora,"",true):null;

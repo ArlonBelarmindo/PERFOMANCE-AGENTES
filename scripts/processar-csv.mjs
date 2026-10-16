@@ -24,9 +24,12 @@ const DE = Number(opt("--de", "0")), ATE = Number(opt("--ate", "99999999"));
 // nomes possíveis da coluna de data de agendamento (o 376 padrão não traz; entra se vier no CSV)
 const COLS_AGENDAMENTO = ["DATA AGENDAMENTO", "AGENDAMENTO DATA", "DATA DE AGENDAMENTO", "AGENDAMENTO", "DT AGENDAMENTO", "DATA AGENDADA"];
 
-let arquivos = [];
+let arquivos = [], cadastros = [];
 for (const a of args) {
-  if (fs.statSync(a).isDirectory()) arquivos.push(...fs.readdirSync(a).filter((f) => /_entregas_.*\.csv$/i.test(f)).map((f) => path.join(a, f)));
+  if (fs.statSync(a).isDirectory()) {
+    arquivos.push(...fs.readdirSync(a).filter((f) => /_entregas_.*\.csv$/i.test(f)).map((f) => path.join(a, f)));
+    cadastros.push(...fs.readdirSync(a).filter((f) => /^agentes_.*\.csv$/i.test(f)).map((f) => path.join(a, f)));
+  } else if (/^agentes_/i.test(path.basename(a))) cadastros.push(a);
   else arquivos.push(a);
 }
 if (!arquivos.length) { console.error("Nenhum CSV de entregas encontrado."); process.exit(1); }
@@ -57,6 +60,20 @@ function classificar(status) {
   if (s.startsWith("ENTREGUE NO PRAZO")) return 1;
   if (s.includes("FORA DO PRAZO")) return inef ? 1 : 0;
   return null;
+}
+
+// cadastro de agentes (Brudam > Cadastro > Agentes, AZ e PEX): nome -> CNPJ (14 dígitos) ou CPF (11 dígitos)
+const cadastro = new Map();
+for (const f of cadastros) {
+  const ls = parseCsv(fs.readFileSync(f, "utf8"));
+  const cab = ls[0].map(norm);
+  const iDoc = cab.findIndex((h) => h.replace(/[^A-Z]/g, "") === "CNPJ" || h.includes("CPF"));
+  const iNomes = ["FANTASIA", "RAZAO SOCIAL", "NOME"].map((h) => cab.indexOf(h)).filter((i) => i >= 0);
+  for (const l of ls.slice(1)) {
+    const doc = (l[iDoc] || "").replace(/\D/g, "");
+    const tipo = doc.length === 14 ? "CNPJ" : doc.length === 11 ? "CPF" : "OUTRO";
+    for (const i of iNomes) { const k = norm(l[i]); if (k && (!cadastro.has(k) || (tipo === "CNPJ" && cadastro.get(k).tipo !== "CNPJ"))) cadastro.set(k, { tipo, doc: (l[iDoc] || "").trim() }); }
+  }
 }
 
 const porMd = new Map();
@@ -109,6 +126,10 @@ for (const r of porMd.values()) {
   linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega, id("sis", r.sistema)]);
 }
 linhas.sort((a, b) => a[1] - b[1]);
+// tipo de documento de cada agente (paralelo a dic.ag)
+dic.agTipo = dic.ag.map((n) => (cadastro.get(norm(n)) || {}).tipo || "");
+// só o CNPJ vai para o arquivo; CPF de pessoa física não é publicado
+dic.agDoc = dic.ag.map((n) => { const c = cadastro.get(norm(n)) || {}; return c.tipo === "CNPJ" ? c.doc : ""; });
 
 const agora = new Date();
 const dados = {
@@ -117,6 +138,7 @@ const dados = {
   hoje: +agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }).replaceAll("-", ""),
   coluna_agendamento: colAgendaAchada,
   arquivos: arquivos.map((f) => path.basename(f)),
+  cadastros: cadastros.map((f) => path.basename(f)),
   campos: ["md", "data_ref", "agendado", "sucesso", "agente", "pagador", "dest", "cidade", "uf", "status", "entrega", "sistema"],
   dic, linhas,
 };
@@ -125,5 +147,6 @@ const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
 console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
 console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
 console.log(`Entregues no mesmo dia após o horário (passaram a contar no prazo): ${mesmoDia}`);
+{ const c = { CNPJ: 0, CPF: 0, OUTRO: 0, "": 0 }; dic.agTipo.forEach((t) => c[t]++); console.log(`Cadastro: ${cadastros.length} arquivo(s), ${cadastro.size} nomes · agentes nas entregas: ${c.CNPJ} com CNPJ, ${c.CPF} com CPF, ${c.OUTRO} doc inválido, ${c[""]} sem cadastro`); }
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
 console.log(`Tamanho: ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB · ${dic.ag.length} agentes · ${dic.dest.length} destinatários`);
