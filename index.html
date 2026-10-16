@@ -110,10 +110,12 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
     <div class="hr"><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div></div></div>
   <div class="mn gut">
-    <div class="banner"><span>&#10003; Brudam &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
+    <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
     <div class="flt" role="group" aria-label="Período de análise">
       <div class="fg"><label>Per&iacute;odo</label>
         <div class="seg" id="segModo"><button type="button" data-m="mes" class="on">M&ecirc;s</button><button type="button" data-m="meses">Intervalo de meses</button><button type="button" data-m="datas">Intervalo de datas</button></div></div>
+      <div class="fg"><label>Base</label>
+        <div class="seg" id="segBase"><button type="button" data-b="todas" class="on">AZ + PEX</button><button type="button" data-b="AZ">AZ</button><button type="button" data-b="PEX">PEX</button></div></div>
       <div class="fg" id="gMes"><label for="fMes">M&ecirc;s</label><select id="fMes"></select></div>
       <div class="fg" id="gMesDe" hidden><label for="fMesDe">De</label><select id="fMesDe"></select></div>
       <div class="fg" id="gMesAte" hidden><label for="fMesAte">At&eacute;</label><select id="fMesAte"></select></div>
@@ -144,7 +146,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <script>
 var D=null,M=null,CL=[],fcl=[],cur=null,META=96,PREVIA=false;
-var F={modo:"mes",mes:null,mesDe:null,mesAte:null,dtDe:null,dtAte:null};
+var F={base:"todas",modo:"mes",mes:null,mesDe:null,mesAte:null,dtDe:null,dtAte:null};
 var NM=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function $(i){return document.getElementById(i);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
@@ -205,6 +207,7 @@ function intervaloAnterior(I){
 }
 function pintarFiltro(){
   document.querySelectorAll("#segModo button").forEach(function(b){b.className=b.dataset.m===F.modo?"on":"";b.setAttribute("aria-pressed",b.dataset.m===F.modo);});
+  document.querySelectorAll("#segBase button").forEach(function(b){b.className=b.dataset.b===F.base?"on":"";b.setAttribute("aria-pressed",b.dataset.b===F.base);});
   $("gMes").hidden=F.modo!=="mes";$("gMesDe").hidden=$("gMesAte").hidden=F.modo!=="meses";$("gDtDe").hidden=$("gDtAte").hidden=F.modo!=="datas";
   $("fMes").value=F.mes;$("fMesDe").value=F.mesDe;$("fMesAte").value=F.mesAte;$("fDtDe").value=dIso(F.dtDe);$("fDtAte").value=dIso(F.dtAte);
 }
@@ -212,15 +215,17 @@ function aplicar(){
   try{localStorage.setItem("ag_filtro",JSON.stringify(F));}catch(e){}
   var I=intervalo(),P=intervaloAnterior(I);
   M=agregar(I,P);CL=M.agentes.slice();fcl=CL.slice();
-  $("pTag1").textContent=$("pTag2").textContent=I.label;
+  $("pTag1").textContent=$("pTag2").textContent=I.label+" · "+(F.base==="todas"?"AZ + PEX":F.base);
   $("lastUpdate").textContent="Atualizado em "+D.gerado_em;
-  $("tituloRanking").textContent="Top 30 Agentes — "+I.label;
+  var bl=F.base==="todas"?"AZ + PEX":F.base;
+  $("tituloRanking").textContent="Top 30 Agentes — "+I.label+" · "+bl;
   $("fNote").textContent=nf(M.resumo.total)+" entregas no período · comparando com "+P.label+(M.parcial?" · período ainda em andamento":"")+" · dados de "+dBr(D.min)+" a "+dBr(D.max);
   $("iBusca").value="";
   if(!$("vD").hidden){mkSum();mkTable(fcl);mkGlobal();}
   if(!$("vC").hidden&&cur){var n=cur.name;cur=null;for(var i=0;i<CL.length;i++)if(CL[i].name===n)cur=CL[i];if(cur){mkHead();mkKPIs();mkTabs();}else goDash();}
 }
 document.querySelectorAll("#segModo button").forEach(function(b){b.addEventListener("click",function(){F.modo=b.dataset.m;pintarFiltro();aplicar();});});
+document.querySelectorAll("#segBase button").forEach(function(b){b.addEventListener("click",function(){F.base=b.dataset.b;pintarFiltro();aplicar();});});
 $("fMes").addEventListener("change",function(){F.mes=this.value;aplicar();});
 $("fMesDe").addEventListener("change",function(){F.mesDe=this.value;aplicar();});
 $("fMesAte").addEventListener("change",function(){F.mesAte=this.value;aplicar();});
@@ -234,7 +239,9 @@ function fecha(o){o.taxa=taxa(o.sucesso,o.total);return o;}
 function lista(m,campo){return Object.keys(m).map(function(k){var o=m[k];o[campo]=o[campo]||k;return fecha(o);}).sort(function(a,b){return b.total-a.total||b.fora-a.fora;});}
 function agregar(I,P){
   var dic=D.dic,ag={},ufG={},geral=novo(),semAg=0,prevAg={},geralP=novo();
+  var sis=dic.sis||[];
   D.linhas.forEach(function(l){
+    if(F.base!=="todas"&&(sis[l[11]]||"AZ")!==F.base)return;
     var d=l[1];
     if(d>=P.de&&d<=P.ate){soma(geralP,l[3]);var np=dic.ag[l[4]];soma(prevAg[np]||(prevAg[np]=novo()),l[3]);}
     if(d<I.de||d>I.ate)return;
@@ -246,7 +253,7 @@ function agregar(I,P){
     var dn=dic.dest[l[6]]||"—";soma(a.dest[dn]||(a.dest[dn]={total:0,sucesso:0,fora:0,cidade:dic.cid[l[7]],uf:uf}),s);
     var pn=dic.pag[l[5]]||"—";soma(a.pag[pn]||(a.pag[pn]=novo()),s);
     var g=ufG[uf]||(ufG[uf]={total:0,sucesso:0,fora:0,_ag:{}});soma(g,s);g._ag[nome]=1;
-    if(!s)a.mds.push({md:l[0],dest:dic.dest[l[6]],cidade:dic.cid[l[7]],uf:uf,data:dBr(d)+(l[2]?" (agend.)":""),status:dic.st[l[9]],pagador:pn,_d:d});
+    if(!s)a.mds.push({md:(sis[l[11]]?sis[l[11]]+" ":"")+l[0],dest:dic.dest[l[6]],cidade:dic.cid[l[7]],uf:uf,data:dBr(d)+(l[2]?" (agend.)":""),status:dic.st[l[9]],pagador:pn,_d:d});
   });
   var agentes=Object.keys(ag).map(function(k){var a=ag[k];fecha(a);
     a.ufs=lista(a.ufs,"uf");a.dest=lista(a.dest,"dest");a.pagadores=lista(a.pag,"name");delete a.pag;
