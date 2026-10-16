@@ -1,23 +1,24 @@
 // Lê os CSVs do Brudam (Tela 376 - Relatório de Entregas, filtro Data Prev. Entrega)
-// e gera o dados.json do dash de agentes.
+// e gera o dados.json do dash de agentes, com uma linha por entrega (o dash filtra por período).
 //
-// Uso: node scripts/processar-csv.mjs <pasta-ou-arquivos...> [--saida dados.json] [--meses 3]
+// Uso: node scripts/processar-csv.mjs <pasta-ou-arquivos...> [--saida dados.json] [--meta 96]
 //
 // Regras (iguais ao Performance Hub):
-//  - mês = PREV. ENTREGA DATA
-//  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" vencido/entregue (ineficiência do cliente)
+//  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
+//  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" (ineficiência do cliente)
 //  - fora    = ENTREGUE FORA DO PRAZO, FORA DO PRAZO (sem ineficiência do cliente)
 //  - pendentes ainda dentro do prazo (NO PRAZO, NO PRAZO (IN.CLIENTE), agendado) não entram na conta
 //  - se a mesma MD aparece em mais de um arquivo, vale o arquivo gerado por último
 import fs from "node:fs";
 import path from "node:path";
-import { agregar } from "./agregar.mjs";
 
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(n); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const SAIDA = opt("--saida", "dados.json");
-const MESES = Number(opt("--meses", "3"));
 const META = Number(opt("--meta", "96"));
+
+// nomes possíveis da coluna de data de agendamento (o 376 padrão não traz; entra se vier no CSV)
+const COLS_AGENDAMENTO = ["DATA AGENDAMENTO", "AGENDAMENTO DATA", "DATA DE AGENDAMENTO", "AGENDAMENTO", "DT AGENDAMENTO", "DATA AGENDADA"];
 
 let arquivos = [];
 for (const a of args) {
@@ -25,17 +26,15 @@ for (const a of args) {
   else arquivos.push(a);
 }
 if (!arquivos.length) { console.error("Nenhum CSV de entregas encontrado."); process.exit(1); }
-// ordena pela data de geração no nome (azportoex_entregas_AAAA_MM_DD_HH_MM_SS.csv)
 const carimbo = (f) => (path.basename(f).match(/(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})/) || [, "0"])[1];
 arquivos.sort((a, b) => carimbo(a).localeCompare(carimbo(b)));
 
-const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
-function lerData(s) { const m = String(s || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])) : null; }
+const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+function dataNum(s) { const m = String(s || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? +(m[3] + m[2] + m[1]) : 0; }
 
 function parseCsv(txt) {
   txt = txt.replace(/^﻿/, "");
-  const linhas = [];
-  let campo = "", linha = [], aspas = false;
+  const linhas = []; let campo = "", linha = [], aspas = false;
   for (let i = 0; i < txt.length; i++) {
     const c = txt[i];
     if (aspas) { if (c === '"') { if (txt[i + 1] === '"') { campo += '"'; i++; } else aspas = false; } else campo += c; }
@@ -47,42 +46,70 @@ function parseCsv(txt) {
   if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
   return linhas;
 }
-
 function classificar(status) {
   const s = norm(status);
   if (!s) return null;
   const inef = s.includes("IN.CLIENTE") || s.includes("INEFICIENCIA");
-  if (s.startsWith("ENTREGUE NO PRAZO")) return true;
-  if (s.includes("FORA DO PRAZO")) return inef ? true : false;
-  return null; // NO PRAZO / agendado / outros: ainda em aberto dentro do prazo
+  if (s.startsWith("ENTREGUE NO PRAZO")) return 1;
+  if (s.includes("FORA DO PRAZO")) return inef ? 1 : 0;
+  return null;
 }
 
 const porMd = new Map();
-let lidas = 0;
+let lidas = 0, comAgendamento = 0, colAgendaAchada = null;
 for (const f of arquivos) {
   const linhas = parseCsv(fs.readFileSync(f, "utf8"));
-  const cab = linhas[0].map((h) => norm(h));
+  const cab = linhas[0].map(norm);
   const col = (nome) => cab.indexOf(norm(nome));
   const c = {
     md: col("MD"), cliente: col("CLIENTE"), dest: col("DESTINATARIO"), cidade: col("CIDADE DESTINO"), uf: col("UF DESTINO"),
     agente: col("RESP ENTREGA"), prev: col("PREV. ENTREGA DATA"), entrega: col("ENTREGA"), status: col("STATUS"),
+    agenda: COLS_AGENDAMENTO.map(col).find((x) => x >= 0) ?? -1,
   };
+  if (c.agenda >= 0) colAgendaAchada = linhas[0][c.agenda].trim();
   for (const k of ["md", "agente", "prev", "status"]) if (c[k] < 0) throw new Error(`${path.basename(f)}: coluna ${k} não encontrada`);
   for (const l of linhas.slice(1)) {
-    if (!/^\d+$/.test((l[c.md] || "").trim())) continue;
+    const md = (l[c.md] || "").trim();
+    if (!/^\d+$/.test(md)) continue;
     lidas++;
-    porMd.set(l[c.md].trim(), {
-      md: l[c.md].trim(), pagador: l[c.cliente] || "", dest: l[c.dest] || "", cidade: l[c.cidade] || "", uf: l[c.uf] || "",
-      agente: (l[c.agente] || "").trim(), prevista: lerData(l[c.prev]), dataTxt: l[c.prev] || "",
-      status: (l[c.status] || "").trim(), sucesso: classificar(l[c.status]),
+    const agenda = c.agenda >= 0 ? dataNum(l[c.agenda]) : 0;
+    porMd.set(md, {
+      md, agente: (l[c.agente] || "").trim() || "SEM AGENTE INFORMADO", pagador: (l[c.cliente] || "").trim(),
+      dest: (l[c.dest] || "").trim(), cidade: (l[c.cidade] || "").trim(), uf: (l[c.uf] || "").trim().toUpperCase() || "—",
+      prev: dataNum(l[c.prev]), agenda, entrega: dataNum(l[c.entrega]), status: (l[c.status] || "").trim(),
+      sucesso: classificar(l[c.status]),
     });
   }
 }
 
-const regs = [...porMd.values()].filter((r) => r.sucesso !== null && r.prevista);
-const dados = agregar(regs, { meta: META, meses: MESES });
-dados.fonte = "brudam";
-dados.arquivos = arquivos.map((f) => path.basename(f));
+// dicionários para deixar o arquivo pequeno
+const dic = { ag: [], pag: [], dest: [], cid: [], st: [] };
+const idx = {}; for (const k in dic) idx[k] = new Map();
+const id = (k, v) => { let i = idx[k].get(v); if (i === undefined) { i = dic[k].length; dic[k].push(v); idx[k].set(v, i); } return i; };
+
+const linhas = [];
+for (const r of porMd.values()) {
+  if (r.sucesso === null) continue;
+  const ref = r.agenda || r.prev;
+  if (!ref) continue;
+  if (r.agenda) comAgendamento++;
+  // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status, entrega(AAAAMMDD)]
+  linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega]);
+}
+linhas.sort((a, b) => a[1] - b[1]);
+
+const agora = new Date();
+const dados = {
+  versao: 2, fonte: "brudam", meta: META,
+  gerado_em: agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", ""),
+  hoje: +agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }).replaceAll("-", ""),
+  coluna_agendamento: colAgendaAchada,
+  arquivos: arquivos.map((f) => path.basename(f)),
+  campos: ["md", "data_ref", "agendado", "sucesso", "agente", "pagador", "dest", "cidade", "uf", "status", "entrega"],
+  dic, linhas,
+};
 fs.writeFileSync(SAIDA, JSON.stringify(dados));
-console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs únicas, ${regs.length} entregas na conta → ${SAIDA}`);
-for (const m of dados.meses) console.log(`  ${m.label}${m.parcial ? " (parcial)" : ""}: ${m.resumo.total} entregas · no prazo ${m.resumo.sucesso} · fora ${m.resumo.fora} · taxa ${m.resumo.taxa}% · ${m.resumo.agentes} agentes · ${m.resumo.sem_agente} sem agente`);
+const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
+console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
+console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
+console.log(`Tamanho: ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB · ${dic.ag.length} agentes · ${dic.dest.length} destinatários`);
