@@ -109,6 +109,9 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 .ubtn{background:var(--or);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .ubtn:hover{background:var(--or2)}
 .ubtn:disabled{background:var(--bg3);color:var(--t2);cursor:default;border:1px solid var(--bd)}
+.xbtn{background:var(--gn);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.xbtn:hover{filter:brightness(1.1)}
+.xbtn:disabled{background:var(--bg3);color:var(--t2);cursor:default;border:1px solid var(--bd);filter:none}
 .lembrar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2);margin:2px 0 6px;cursor:pointer}
 .lembrar input{accent-color:var(--or);width:16px;height:16px}
 .sair{background:none;border:1px solid var(--bd);color:var(--t2);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer}
@@ -130,7 +133,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <div id="vD" hidden>
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
-    <div class="hr"><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
+    <div class="hr"><button type="button" class="xbtn" id="btnXls" onclick="exportarExcel()" title="Baixa em Excel o período e a base selecionados: resumo, agentes, todas as entregas e as fora do prazo">⬇ Exportar Excel</button><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
   <div class="mn gut">
     <div class="nota" id="updMsg" role="status" hidden></div>
     <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente + Entregue no dia previsto (mesmo ap&oacute;s o hor&aacute;rio) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
@@ -422,6 +425,50 @@ function mkTabs(){var c=cur,p=c.prev;
 function swTab(i){document.querySelectorAll(".tab").forEach(function(t,j){t.className="tab"+(j===i?" on":"");});document.querySelectorAll(".tc").forEach(function(t,j){t.hidden=j!==i;});}
 
 $("fLogin").addEventListener("submit",function(e){e.preventDefault();if(!D)return;login();});
+/* ---- exportar Excel: período e base selecionados no filtro ---- */
+var XLSX_URL="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+function carregaXlsx(){return window.XLSX?Promise.resolve(window.XLSX):new Promise(function(ok,ko){var s=document.createElement("script");s.src=XLSX_URL;s.onload=function(){window.XLSX?ok(window.XLSX):ko(new Error("lib"));};s.onerror=function(){ko(new Error("lib"));};document.head.appendChild(s);});}
+function serial(n){if(!n)return null;var s=String(n);return (Date.UTC(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8))-Date.UTC(1899,11,30))/864e5;}
+function pc(t){return t==null?null:Math.round(t*100)/10000;}
+function stTxt(t){return t==null?"Sem volume":t>=META?"Excelente":t>=85?"Regular":"Crítico";}
+async function exportarExcel(){
+  if(!M||!D)return;var b=$("btnXls");b.disabled=true;b.textContent="Gerando…";
+  try{
+    var X=await carregaXlsx();
+    var I=intervalo(),bl=F.base==="todas"?"AZ + PEX":F.base,dic=D.dic,sis=dic.sis||[],R=M.resumo;
+    var wb=X.utils.book_new();
+    function aba(nome,rows,larg,fmt,filtro){var ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=larg.map(function(w){return {wch:w};});
+      var rg=X.utils.decode_range(ws["!ref"]);
+      for(var r=0;r<=rg.e.r;r++)for(var c=0;c<=rg.e.c;c++){var f=fmt(r,c),cl=ws[X.utils.encode_cell({r:r,c:c})];if(f&&cl&&cl.t==="n")cl.z=f;}
+      if(filtro&&rows.length>1)ws["!autofilter"]={ref:ws["!ref"]};
+      X.utils.book_append_sheet(wb,ws,nome);}
+    var res=[["Performance de Agentes de Entrega — PortoEX"],[],["Período",I.label],["Base",bl],["Dados atualizados em",D.gerado_em],["Meta",pc(META)],[],
+      ["Total de entregas",R.total],["No prazo (inclui ineficiência do cliente)",R.sucesso],["Entregue fora do prazo",R.fora_ent],["Em aberto e atrasadas",R.fora_ab],["Taxa",pc(R.taxa)],
+      ["Agentes com CNPJ",R.agentes_cnpj],[],["Regra: período pela Previsão de Entrega; sucesso = no prazo + ineficiência do cliente + entregue no dia previsto; entregas ainda dentro do prazo não entram na conta."]];
+    aba("Resumo",res,[42,24],function(r,c){return c===1&&(r===5||r===11)?"0.0%":null;},false);
+    var ag=[["#","Agente","Tipo","CNPJ","Total","No prazo","Entregue fora do prazo","Em aberto e atrasada","Taxa","Taxa período anterior","Status"]];
+    M.agentes.forEach(function(a,i){ag.push([i+1,a.name,D.tipo[a.name]||"sem cadastro",D.doc[a.name]||"",a.total,a.sucesso,a.fora_ent||0,a.fora_ab||0,pc(a.taxa),a.prev?pc(a.prev.taxa):null,stTxt(a.taxa)]);});
+    aba("Agentes",ag,[5,44,13,20,8,9,12,12,8,12,11],function(r,c){return r>0&&(c===8||c===9)?"0.0%":null;},true);
+    var cab=["Sistema","MD","Prev. Entrega","Entrega","Agente","Tipo","CNPJ","Pagador","Destinatário","Cidade","UF","Status Brudam","Resultado","Dias de atraso"],ent=[cab],fora=[cab];
+    D.linhas.forEach(function(l){var s=sis[l[11]]||"AZ";if(F.base!=="todas"&&s!==F.base)return;if(l[1]<I.de||l[1]>I.ate)return;
+      var nome=dic.ag[l[4]],res2=l[3]?"No prazo":(l[10]?"Entregue fora do prazo":"Em aberto e atrasada");
+      var atr=l[3]?null:Math.max(0,Math.round((toDate(l[10]||D.hoje||l[1])-toDate(l[1]))/864e5));
+      var row=[s,l[0],serial(l[1]),serial(l[10]),nome,D.tipo[nome]||"sem cadastro",D.doc[nome]||"",dic.pag[l[5]],dic.dest[l[6]],dic.cid[l[7]],l[8],dic.st[l[9]],res2,atr];
+      ent.push(row);if(!l[3])fora.push(row);});
+    var larg=[8,10,12,12,40,13,20,34,40,22,5,34,22,9],fd=function(r,c){return r>0&&(c===2||c===3)?"dd/mm/yyyy":null;};
+    aba("Fora do prazo",fora,larg,fd,true);
+    aba("Entregas",ent,larg,fd,true);
+    var out=X.write(wb,{bookType:"xlsx",type:"array"});
+    var nomeArq=("Agentes "+I.label+" "+bl).replace(/[\\\/:*?"<>|+]+/g," ").trim().replace(/\s+/g,"_")+".xlsx";
+    var blob=new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var dl=window.claude&&await window.claude.use("downloads");
+    if(dl){
+      try{await dl.save({filename:nomeArq,data:blob});}
+      catch(e){var c=e&&e.code;if(c==="rate_limited")msgUpd("Já existe um download esperando confirmação.","var(--am)");else if(c!=="declined")msgUpd("Não foi possível baixar o arquivo ("+(c||"erro")+").","var(--rd)");}
+    }else{var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=nomeArq;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},5000);}
+  }catch(e){msgUpd("Não foi possível gerar o Excel. Verifique a internet e tente de novo.","var(--rd)");}
+  finally{b.disabled=false;b.textContent="⬇ Exportar Excel";}
+}
 /* ---- botão "Atualizar agora": dispara a tarefa agendada de atualização (só no dash do Claude) ---- */
 var TAREFA="trig_019DqVFAu3yNZfXkUAe1N9G3",ESPERA_MIN=15;
 function msgUpd(t,cor){var m=$("updMsg");m.textContent=t;m.style.color=cor||"var(--t2)";m.hidden=!t;}
