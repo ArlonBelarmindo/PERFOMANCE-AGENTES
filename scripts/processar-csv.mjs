@@ -5,10 +5,13 @@
 //
 // Regras (iguais ao Performance Hub):
 //  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
-//  - vale o STATUS do Brudam, sem reclassificar (pedido do Arlon em 28/10, 17h50):
+//  - base = STATUS do Brudam, que vai para o dash sem ser reescrito:
 //    sucesso = ENTREGUE NO PRAZO e tudo que tem "(IN.CLIENTE)"; fora = ENTREGUE FORA DO PRAZO e FORA DO PRAZO
-//  - com --regras-portoex volta às regras antigas: ocorrência de ineficiência preenchida (OCORRÊNCIA INEF. /
-//    DATA DA OCORRÊNCIA INEF.) conta no prazo, e entregue no mesmo dia da previsão após o horário também
+//  - regras PortoEX (pedido do Arlon em 28/10), aplicadas só com campos do próprio CSV do Brudam:
+//    1) ocorrência de ineficiência do cliente preenchida (OCORRÊNCIA INEF. ou DATA DA OCORRÊNCIA INEF.) → no prazo
+//    2) status ENTREGUE FORA DO PRAZO com ENTREGA = PREV. ENTREGA DATA (entregue no dia, após o horário) → no prazo
+//    a linha leva o código da regra usada (campo "regra": 0 nenhuma, 1 ocorrência inef., 2 entregue no dia)
+//  - --sem-regras desliga as duas regras e usa só o status do Brudam
 //  - pendentes ainda dentro do prazo (NO PRAZO, NO PRAZO (IN.CLIENTE), agendado) não entram na conta
 //  - AZ (azportoex) e PEX (pexlogistica) entram juntos; a MD é identificada por sistema + número
 //  - se a mesma MD do mesmo sistema aparece em mais de um arquivo, vale o arquivo gerado por último
@@ -18,7 +21,7 @@ import path from "node:path";
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(n); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const SAIDA = opt("--saida", "dados.json");
-const REGRAS_PORTOEX = (() => { const i = args.indexOf("--regras-portoex"); if (i < 0) return false; args.splice(i, 1); return true; })();
+const REGRAS_PORTOEX = (() => { const i = args.indexOf("--sem-regras"); if (i < 0) return true; args.splice(i, 1); return false; })();
 const META = Number(opt("--meta", "96"));
 // limita o período (AAAAMMDD) para descartar datas digitadas erradas no Brudam (ex.: 2029)
 const DE = Number(opt("--de", "0")), ATE = Number(opt("--ate", "99999999"));
@@ -81,7 +84,7 @@ for (const f of cadastros) {
 
 const porMd = new Map();
 let colunasCorrigidas = 0;
-let lidas = 0, mesmoDia = 0, comAgendamento = 0, colAgendaAchada = null;
+let lidas = 0, mesmoDia = 0, ocorrInef = 0, comAgendamento = 0, colAgendaAchada = null;
 // sistema de origem pelo nome do arquivo: azportoex_entregas_... → AZ, pexlogistica_entregas_... → PEX
 const SISTEMAS = { azportoex: "AZ", pexlogistica: "PEX" };
 const sistemaDe = (f) => { const m = path.basename(f).match(/([a-z0-9]+)_entregas_/i); const k = m ? m[1].toLowerCase() : "az"; return SISTEMAS[k] || k.toUpperCase(); };
@@ -117,7 +120,7 @@ for (const f of arquivos) {
       md, sistema, agente: (l[c.agente] || "").trim() || "SEM AGENTE INFORMADO", pagador: (l[c.cliente] || "").trim(),
       dest: (l[c.dest] || "").trim(), cidade: (l[c.cidade] || "").trim(), uf: (l[c.uf] || "").trim().toUpperCase() || "—",
       prev: dataNum(l[c.prev]), agenda, entrega: dataNum(l[c.entrega]), status: (l[c.status] || "").trim(),
-      sucesso: classificar(l[c.status], REGRAS_PORTOEX && temOcInef),
+      sucesso: classificar(l[c.status], false), temOcInef,
     });
   }
 }
@@ -133,10 +136,14 @@ for (const r of porMd.values()) {
   const ref = r.agenda || r.prev;
   if (!ref || ref < DE || ref > ATE) continue;
   // regra PortoEX: entregue no mesmo dia da previsão, mesmo após o horário limite, conta como no prazo
-  if (REGRAS_PORTOEX && r.sucesso === 0 && r.entrega && r.entrega === ref) { r.sucesso = 1; r.status = "ENTREGUE NO DIA (HORÁRIO EXCEDIDO)"; mesmoDia++; }
+  let regra = 0;
+  if (REGRAS_PORTOEX && r.sucesso === 0) {
+    if (r.temOcInef) { r.sucesso = 1; regra = 1; ocorrInef++; }
+    else if (r.entrega && r.prev && r.entrega === r.prev && norm(r.status).startsWith("ENTREGUE")) { r.sucesso = 1; regra = 2; mesmoDia++; }
+  }
   if (r.agenda) comAgendamento++;
-  // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status, entrega(AAAAMMDD)]
-  linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega, id("sis", r.sistema)]);
+  // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status Brudam, entrega(AAAAMMDD), sistema, regra(0/1/2)]
+  linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega, id("sis", r.sistema), regra]);
 }
 linhas.sort((a, b) => a[1] - b[1]);
 // tipo de documento de cada agente (paralelo a dic.ag)
@@ -152,15 +159,14 @@ const dados = {
   coluna_agendamento: colAgendaAchada,
   arquivos: arquivos.map((f) => path.basename(f)),
   cadastros: cadastros.map((f) => path.basename(f)),
-  campos: ["md", "data_ref", "agendado", "sucesso", "agente", "pagador", "dest", "cidade", "uf", "status", "entrega", "sistema"],
+  campos: ["md", "data_ref", "agendado", "sucesso", "agente", "pagador", "dest", "cidade", "uf", "status", "entrega", "sistema", "regra"],
   dic, linhas,
 };
 fs.writeFileSync(SAIDA, JSON.stringify(dados));
 const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
 console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
 console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
-console.log(REGRAS_PORTOEX ? "Regras PortoEX ligadas (ocorrência inef. e mesmo dia contam no prazo)" : "Status do Brudam sem reclassificação");
-console.log(`Entregues no mesmo dia após o horário (passaram a contar no prazo): ${mesmoDia}`);
+console.log(REGRAS_PORTOEX ? `Regras PortoEX: ${ocorrInef} com ocorrência inef. no Brudam e ${mesmoDia} entregues no dia previsto após o horário passaram a contar no prazo (status do Brudam mantido)` : "Só status do Brudam (--sem-regras)");
 { const c = { CNPJ: 0, CPF: 0, OUTRO: 0, "": 0 }; dic.agTipo.forEach((t) => c[t]++); console.log(`Cadastro: ${cadastros.length} arquivo(s), ${cadastro.size} nomes · agentes nas entregas: ${c.CNPJ} com CNPJ, ${c.CPF} com CPF, ${c.OUTRO} doc inválido, ${c[""]} sem cadastro`); }
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
 if (colunasCorrigidas) console.log(`Linhas com "&" no nome (colunas realinhadas): ${colunasCorrigidas}`);

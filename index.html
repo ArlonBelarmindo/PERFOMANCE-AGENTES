@@ -145,7 +145,7 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
     <div class="hr"><button type="button" class="xbtn" id="btnXls" onclick="exportarExcel()" title="Baixa em Excel o período e a base selecionados: resumo, agentes, todas as entregas e as fora do prazo">⬇ Exportar Excel</button><button type="button" class="pbtn" id="btnPpt" onclick="abrirPpt()">📄 Gerar apresentação</button><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
   <div class="mn gut">
     <div class="nota" id="updMsg" role="status" hidden></div>
-    <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Status do Brudam: sucesso = Entregue no prazo + Inefici&ecirc;ncia do Cliente (IN.CLIENTE) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
+    <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Status do Brudam &bull; Sucesso = Entregue no prazo + Inefici&ecirc;ncia do Cliente (IN.CLIENTE ou ocorr&ecirc;ncia inef. preenchida no Brudam) + Entregue no dia previsto ap&oacute;s o hor&aacute;rio &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
     <div class="flt" role="group" aria-label="Período de análise">
       <div class="fg"><label>Per&iacute;odo</label>
         <div class="seg" id="segModo"><button type="button" data-m="mes" class="on">M&ecirc;s</button><button type="button" data-m="meses">Intervalo de meses</button><button type="button" data-m="datas">Intervalo de datas</button></div></div>
@@ -277,6 +277,9 @@ $("fDtAte").addEventListener("change",function(){if(this.value){F.dtAte=isoN(thi
 
 /* ---- cálculo por agente ---- */
 function novo(){return {total:0,sucesso:0,fora:0};}
+/* em aberto x entregue vem do STATUS do Brudam (ENTREGUE ... = entregue); a data de entrega só entra se o status vier vazio */
+function aberta(l){var st=(D.dic.st[l[9]]||"").toUpperCase();return st?st.indexOf("ENTREGUE")!==0:!l[10];}
+var REGRA_TX=["","no prazo pela regra: ocorrência de ineficiência do cliente preenchida no Brudam","no prazo pela regra: entregue no dia previsto, após o horário"];
 function soma(o,s,ab){o.total++;if(s)o.sucesso++;else{o.fora++;if(ab)o.fora_ab=(o.fora_ab||0)+1;else o.fora_ent=(o.fora_ent||0)+1;}}
 function fecha(o){o.taxa=taxa(o.sucesso,o.total);return o;}
 function lista(m,campo){return Object.keys(m).map(function(k){var o=m[k];o[campo]=o[campo]||k;return fecha(o);}).sort(function(a,b){return b.total-a.total||b.fora-a.fora;});}
@@ -286,17 +289,17 @@ function agregar(I,P){
   D.linhas.forEach(function(l){
     if(F.base!=="todas"&&(sis[l[11]]||"AZ")!==F.base)return;
     var d=l[1];
-    if(d>=P.de&&d<=P.ate){soma(geralP,l[3],!l[10]);var np=dic.ag[l[4]];soma(prevAg[np]||(prevAg[np]=novo()),l[3]);}
+    if(d>=P.de&&d<=P.ate){soma(geralP,l[3],aberta(l));var np=dic.ag[l[4]];soma(prevAg[np]||(prevAg[np]=novo()),l[3]);}
     if(d<I.de||d>I.ate)return;
-    var ab=!l[10],s=l[3],nome=dic.ag[l[4]],uf=l[8];
-    soma(geral,s,ab);if(nome==="SEM AGENTE INFORMADO")semAg++;
+    var ab=aberta(l),s=l[3],nome=dic.ag[l[4]],uf=l[8];
+    soma(geral,s,ab);if(s&&l[12])geral.regra=(geral.regra||0)+1;if(nome==="SEM AGENTE INFORMADO")semAg++;
     var a=ag[nome]||(ag[nome]={name:nome,total:0,sucesso:0,fora:0,ufs:{},dest:{},pag:{},mds:[]});
     soma(a,s,ab);
     soma(a.ufs[uf]||(a.ufs[uf]=novo()),s);
     var dn=dic.dest[l[6]]||"—";soma(a.dest[dn]||(a.dest[dn]={total:0,sucesso:0,fora:0,cidade:dic.cid[l[7]],uf:uf}),s);
     var pn=dic.pag[l[5]]||"—";soma(a.pag[pn]||(a.pag[pn]=novo()),s);
     var g=ufG[uf]||(ufG[uf]={total:0,sucesso:0,fora:0,_ag:{}});soma(g,s);g._ag[nome]=1;
-    if(!s)a.mds.push({md:(sis[l[11]]?sis[l[11]]+" ":"")+l[0],dest:dic.dest[l[6]],cidade:dic.cid[l[7]],uf:uf,data:dBr(d)+(l[2]?" (agend.)":""),entrega:dBr(l[10]),status:dic.st[l[9]],pagador:pn,_d:d,_e:l[10]||0});
+    if(!s)a.mds.push({md:(sis[l[11]]?sis[l[11]]+" ":"")+l[0],dest:dic.dest[l[6]],cidade:dic.cid[l[7]],uf:uf,data:dBr(d)+(l[2]?" (agend.)":""),entrega:dBr(l[10]),status:dic.st[l[9]],pagador:pn,_d:d,_e:l[10]||0,_ab:ab});
   });
   var agentes=Object.keys(ag).map(function(k){var a=ag[k];fecha(a);
     a.ufs=lista(a.ufs,"uf");a.dest=lista(a.dest,"dest");a.pagadores=lista(a.pag,"name");delete a.pag;
@@ -304,7 +307,7 @@ function agregar(I,P){
     var p=prevAg[k];a.prev=p?fecha({total:p.total,sucesso:p.sucesso,fora:p.fora}):null;return a;});
   agentes.sort(function(x,y){return y.total-x.total||y.fora-x.fora;});
   agentes.forEach(function(a,i){a.id=i+1;a.rank=i+1;});
-  var R=fecha(geral);R.fora_ent=geral.fora_ent||0;R.fora_ab=geral.fora_ab||0;R.agentes=agentes.filter(function(a){return a.name!=="SEM AGENTE INFORMADO";}).length;R.sem_agente=semAg;
+  var R=fecha(geral);R.regra=geral.regra||0;R.fora_ent=geral.fora_ent||0;R.fora_ab=geral.fora_ab||0;R.agentes=agentes.filter(function(a){return a.name!=="SEM AGENTE INFORMADO";}).length;R.sem_agente=semAg;
   return {label:I.label,labelPrev:P.label,parcial:(D.hoje||0)>=I.de&&(D.hoje||0)<=I.ate,resumo:R,resumo_prev:geralP.total?fecha(geralP):null,agentes:agentes,
     ufs:Object.keys(ufG).map(function(u){var g=ufG[u];return fecha({uf:u,total:g.total,sucesso:g.sucesso,fora:g.fora,agentes:Object.keys(g._ag).length});}).sort(function(a,b){return b.total-a.total;})};
 }
@@ -322,7 +325,7 @@ function mkSum(){var R=M.resumo,P=M.resumo_prev;
   var dT=P?delta(R.total,P.total,"%"):null,dS=P?delta(R.taxa,P.taxa,"pp"):null,dF=P?delta(R.fora,P.fora,"%",true):null;
   $("sg").innerHTML=
     sc("or","Total Entregas",nf(R.total),P?"vs período ant.":"sem período anterior",dT&&dT.good,dT&&dT.txt)+
-    sc("gn","No Prazo",nf(R.sucesso),"inclui ineficiência do cliente")+
+    sc("gn","No Prazo",nf(R.sucesso),"inclui ineficiência do cliente"+(R.regra?" · "+nf(R.regra)+" pelas regras PortoEX":""))+
     sc("rd","Entregue fora do prazo",nf(R.fora_ent),"de "+nf(R.fora)+" fora do prazo"+(dF?" <span class=\""+(dF.good?"up":"dn")+"\">"+dF.txt+"</span>":"")+(R.fora_ent?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora_ent?"showFora('ent')":"")+
     sc("am","Em aberto e atrasadas",nf(R.fora_ab),"ainda n\u00e3o entregues, prazo vencido"+(R.fora_ab?"<span class=\"ver\">ver minutas →</span>":""),null,null,R.fora_ab?"showFora('ab')":"")+
     sc(R.taxa>=META?"gn":"am","Taxa Geral",pf(R.taxa),"meta "+META+"%",dS&&dS.good,dS&&dS.txt)+
@@ -352,7 +355,7 @@ function mkGlobal(){$("glob").innerHTML="<div class=\"cc\"><div class=\"ct\">Per
 /* ---- lista de todas as minutas fora do prazo ---- */
 var FORA=[],FORD={k:"_d",asc:true},FQ="",FT="todas";
 function showFora(tipo){FT=tipo||"todas";
-  FORA=[];M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_ab:!m._e,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
+  FORA=[];M.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(m){FORA.push({md:m.md,agente:a.name,pagador:m.pagador,dest:m.dest,cidade:m.cidade,uf:m.uf,data:m.data,entrega:m.entrega,status:m.status,_d:m._d,_e:m._e,_ab:m._ab,_atr:Math.max(0,Math.round((toDate(m._e||D.hoje||m._d)-toDate(m._d))/864e5))});});});
   FQ="";FORD={k:"_d",asc:true};
   var cols=[["md","MD"],["agente","Agente"],["pagador","Pagador"],["dest","Destinatário"],["cidade","Cidade"],["uf","UF"],["_d","Prev. Entrega"],["_e","Entrega"],["_atr","Dias de atraso"],["status","Status"]];
   var el=document.createElement("div");el.className="modal";el.id="mdModal";el.onclick=function(e){if(e.target===el)el.remove();};
@@ -453,14 +456,14 @@ async function exportarExcel(){
       X.utils.book_append_sheet(wb,ws,nome);}
     var res=[["Performance de Agentes de Entrega — PortoEX"],[],["Período",I.label],["Base",bl],["Dados atualizados em",D.gerado_em],["Meta",pc(META)],[],
       ["Total de entregas",R.total],["No prazo (inclui ineficiência do cliente)",R.sucesso],["Entregue fora do prazo",R.fora_ent],["Em aberto e atrasadas",R.fora_ab],["Taxa",pc(R.taxa)],
-      ["Agentes com CNPJ",R.agentes_cnpj],[],["Regra: período pela Previsão de Entrega; status do Brudam: sucesso = entregue no prazo + ineficiência do cliente (IN.CLIENTE); entregas ainda dentro do prazo não entram na conta."]];
+      ["Agentes com CNPJ",R.agentes_cnpj],[],["Regra: período pela Previsão de Entrega; status do Brudam; sucesso = entregue no prazo + ineficiência do cliente (IN.CLIENTE ou ocorrência inef. preenchida no Brudam) + entregue no dia previsto após o horário (coluna Resultado mostra quando a regra foi usada); entregas ainda dentro do prazo não entram na conta."]];
     aba("Resumo",res,[42,24],function(r,c){return c===1&&(r===5||r===11)?"0.0%":null;},false);
     var ag=[["#","Agente","Tipo","CNPJ","Total","No prazo","Entregue fora do prazo","Em aberto e atrasada","Taxa","Taxa período anterior","Status"]];
     M.agentes.forEach(function(a,i){ag.push([i+1,a.name,D.tipo[a.name]||"sem cadastro",D.doc[a.name]||"",a.total,a.sucesso,a.fora_ent||0,a.fora_ab||0,pc(a.taxa),a.prev?pc(a.prev.taxa):null,stTxt(a.taxa)]);});
     aba("Agentes",ag,[5,44,13,20,8,9,12,12,8,12,11],function(r,c){return r>0&&(c===8||c===9)?"0.0%":null;},true);
     var cab=["Sistema","MD","Prev. Entrega","Entrega","Agente","Tipo","CNPJ","Pagador","Destinatário","Cidade","UF","Status Brudam","Resultado","Dias de atraso"],ent=[cab],fora=[cab];
     D.linhas.forEach(function(l){var s=sis[l[11]]||"AZ";if(F.base!=="todas"&&s!==F.base)return;if(l[1]<I.de||l[1]>I.ate)return;
-      var nome=dic.ag[l[4]],res2=l[3]?"No prazo":(l[10]?"Entregue fora do prazo":"Em aberto e atrasada");
+      var nome=dic.ag[l[4]],res2=l[3]?(l[12]?"No prazo ("+REGRA_TX[l[12]].replace("no prazo pela ","")+")":"No prazo"):(aberta(l)?"Em aberto e atrasada":"Entregue fora do prazo");
       var atr=l[3]?null:Math.max(0,Math.round((toDate(l[10]||D.hoje||l[1])-toDate(l[1]))/864e5));
       var row=[s,l[0],serial(l[1]),serial(l[10]),nome,D.tipo[nome]||"sem cadastro",D.doc[nome]||"",dic.pag[l[5]],dic.dest[l[6]],dic.cid[l[7]],l[8],dic.st[l[9]],res2,atr];
       ent.push(row);if(!l[3])fora.push(row);});
@@ -756,7 +759,7 @@ function pptRender(){
   var cn=m.agentes.filter(function(a){return D.tipo[a.name]==="CNPJ";});
   var top=cn.filter(function(a){return a.total>=PP.v1;}).sort(function(a,b){return (b.taxa-a.taxa)||(b.total-a.total);}).slice(0,10);
   var pior=cn.filter(function(a){return a.total>=PP.v2;}).sort(function(a,b){return (a.taxa-b.taxa)||(b.total-a.total);}).slice(0,5);
-  var rg={};m.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(x){var r=REG[x.uf]||"Outros",o=rg[r]||(rg[r]={nome:r,ent:0,ab:0});if(x._e)o.ent++;else o.ab++;});});
+  var rg={};m.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(x){var r=REG[x.uf]||"Outros",o=rg[r]||(rg[r]={nome:r,ent:0,ab:0});if(!x._ab)o.ent++;else o.ab++;});});
   var regs=Object.keys(rg).map(function(r){return rg[r];}).sort(function(a,b){return (b.ent+b.ab)-(a.ent+a.ab);});
   PP.m=m;PP.top=top;PP.pior=pior;PP.regs=regs;
   var opt="";for(var j=D.meses.length-1;j>=0;j--){var kk=D.meses[j];opt+="<option value=\""+kk+"\""+(kk===k?" selected":"")+">"+esc(mesLabel(kk)+(kk===PP.hk?" (parcial)":""))+"</option>";}
