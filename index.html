@@ -117,6 +117,15 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 .sair{background:none;border:1px solid var(--bd);color:var(--t2);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer}
 .sair:hover{color:var(--t1);border-color:var(--t2)}
 .ptag{display:inline-block;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--or);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600}
+.prow{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+#pptModal .mbox{width:1100px}
+#pptModal textarea,#pptModal .mt input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:6px 10px;font-size:13px;color:var(--t1);font-family:inherit;outline:none}
+#pptModal textarea{resize:vertical;line-height:1.4}
+#pptModal textarea:focus,#pptModal .mt input:focus,#pptModal .fg input:focus,#pptModal .fg select:focus{border-color:var(--or)}
+#pptModal .mt input{padding:4px 8px;font-size:12px}
+.pbtn{background:var(--or);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pbtn:hover{background:var(--or2)}
+.pbtn:disabled{background:var(--bg3);color:var(--t2);cursor:default;border:1px solid var(--bd)}
 </style>
 
 <div id="vL" class="gut"><div class="box">
@@ -133,10 +142,10 @@ tr.dr:hover td{background:var(--bg3);cursor:pointer}
 
 <div id="vD" hidden>
   <div class="hd gut"><button class="hlogo" onclick="goDash()">PORTO<span>EX</span> <span>&middot; Agentes</span></button>
-    <div class="hr"><button type="button" class="xbtn" id="btnXls" onclick="exportarExcel()" title="Baixa em Excel o período e a base selecionados: resumo, agentes, todas as entregas e as fora do prazo">⬇ Exportar Excel</button><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
+    <div class="hr"><button type="button" class="xbtn" id="btnXls" onclick="exportarExcel()" title="Baixa em Excel o período e a base selecionados: resumo, agentes, todas as entregas e as fora do prazo">⬇ Exportar Excel</button><button type="button" class="pbtn" id="btnPpt" onclick="abrirPpt()">📄 Gerar apresentação</button><span id="updBox" hidden><button type="button" class="ubtn" id="btnUpd" onclick="atualizarAgora()" title="Busca agora os dados do Brudam AZ e PEX e publica o dash">⟳ Atualizar agora</button></span><span class="ptag" id="pTag1"></span><span style="font-size:13px;color:var(--t2)" class="hN"></span><div class="av hA">BR</div><button type="button" class="sair" onclick="sair()" title="Sair e esquecer o login neste navegador">Sair</button></div></div>
   <div class="mn gut">
     <div class="nota" id="updMsg" role="status" hidden></div>
-    <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Sucesso = No Prazo + Inefici&ecirc;ncia do Cliente + Entregue no dia previsto (mesmo ap&oacute;s o hor&aacute;rio) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
+    <div class="banner"><span>&#10003; Brudam AZ + PEX &bull; Tela 376 &bull; Per&iacute;odo pela Previs&atilde;o de Entrega (ou data de agendamento, quando houver) &bull; Status do Brudam: sucesso = Entregue no prazo + Inefici&ecirc;ncia do Cliente (IN.CLIENTE) &bull; Meta: <span class="metaTx">96</span>%</span><span id="lastUpdate" style="font-weight:400;color:var(--t2);font-size:11px"></span></div>
     <div class="flt" role="group" aria-label="Período de análise">
       <div class="fg"><label>Per&iacute;odo</label>
         <div class="seg" id="segModo"><button type="button" data-m="mes" class="on">M&ecirc;s</button><button type="button" data-m="meses">Intervalo de meses</button><button type="button" data-m="datas">Intervalo de datas</button></div></div>
@@ -444,7 +453,7 @@ async function exportarExcel(){
       X.utils.book_append_sheet(wb,ws,nome);}
     var res=[["Performance de Agentes de Entrega — PortoEX"],[],["Período",I.label],["Base",bl],["Dados atualizados em",D.gerado_em],["Meta",pc(META)],[],
       ["Total de entregas",R.total],["No prazo (inclui ineficiência do cliente)",R.sucesso],["Entregue fora do prazo",R.fora_ent],["Em aberto e atrasadas",R.fora_ab],["Taxa",pc(R.taxa)],
-      ["Agentes com CNPJ",R.agentes_cnpj],[],["Regra: período pela Previsão de Entrega; sucesso = no prazo + ineficiência do cliente + entregue no dia previsto; entregas ainda dentro do prazo não entram na conta."]];
+      ["Agentes com CNPJ",R.agentes_cnpj],[],["Regra: período pela Previsão de Entrega; status do Brudam: sucesso = entregue no prazo + ineficiência do cliente (IN.CLIENTE); entregas ainda dentro do prazo não entram na conta."]];
     aba("Resumo",res,[42,24],function(r,c){return c===1&&(r===5||r===11)?"0.0%":null;},false);
     var ag=[["#","Agente","Tipo","CNPJ","Total","No prazo","Entregue fora do prazo","Em aberto e atrasada","Taxa","Taxa período anterior","Status"]];
     M.agentes.forEach(function(a,i){ag.push([i+1,a.name,D.tipo[a.name]||"sem cadastro",D.doc[a.name]||"",a.total,a.sucesso,a.fora_ent||0,a.fora_ab||0,pc(a.taxa),a.prev?pc(a.prev.taxa):null,stTxt(a.taxa)]);});
@@ -499,6 +508,311 @@ async function atualizarAgora(){
   }
 }
 (async function(){var mcp=window.claude&&await window.claude.use("mcp");if(mcp){$("updBox").hidden=false;travaBotao();}})();
+/* ---- gerador do PPTX: recebe só dados simples (sem DOM) e devolve a apresentação ---- */
+function construirPpt(PptxGenJS,d){
+  var NAVY="0D1B3E",OR="E8500A",BG="F4F6FB",GR="16A34A",RD="DC2626",SL="64748B",AM="D97706",W="FFFFFF";
+  var pres=new PptxGenJS();pres.layout="LAYOUT_16x9";pres.title="PE "+d.mesLabel+" - Rastreamento";pres.author=d.autor;
+  function head(s,okr,tit,sub){
+    s.background={color:BG};
+    s.addShape("rect",{x:0,y:0,w:10,h:.88,fill:{color:NAVY},line:{color:NAVY}});
+    s.addShape("rect",{x:0,y:0,w:.22,h:.88,fill:{color:OR},line:{color:OR}});
+    s.addShape("roundRect",{x:.37,y:.18,w:1.5,h:.32,fill:{color:OR},line:{color:OR},rectRadius:.05});
+    s.addText(okr,{x:.37,y:.18,w:1.5,h:.32,align:"center",valign:"middle",fontSize:8,bold:true,color:W,margin:0});
+    s.addText(tit,{x:2,y:.06,w:7.1,h:.5,fontSize:20,bold:true,color:W,valign:"middle",margin:0});
+    s.addText(sub,{x:2,y:.56,w:7.1,h:.28,fontSize:11,bold:true,color:OR,valign:"middle",margin:0});
+    s.addShape("ellipse",{x:9.25,y:.1,w:.45,h:.45,fill:{color:OR},line:{color:OR}});
+    s.addText("PE",{x:9.25,y:.1,w:.45,h:.45,align:"center",valign:"middle",fontSize:11,bold:true,color:W,margin:0});
+  }
+  var MES=d.mesNome.toUpperCase(),META=d.meta;
+
+  /* 1. capa */
+  var s=pres.addSlide();s.background={color:NAVY};
+  s.addShape("rect",{x:0,y:0,w:.35,h:5.625,fill:{color:OR},line:{color:OR}});
+  s.addShape("ellipse",{x:.9,y:.6,w:.7,h:.7,fill:{color:OR},line:{color:OR}});
+  s.addText("PE",{x:.9,y:.6,w:.7,h:.7,align:"center",valign:"middle",fontSize:18,bold:true,color:W,margin:0});
+  s.addText("PLANEJAMENTO",{x:.9,y:1.5,w:8,h:.7,fontSize:40,bold:true,color:W,margin:0});
+  s.addText("ESTRATÉGICO",{x:.9,y:2.15,w:8,h:.7,fontSize:40,bold:true,color:OR,margin:0});
+  s.addText("RESULTADOS "+MES+" "+d.ano,{x:.9,y:3.1,w:8,h:.4,fontSize:18,bold:true,color:W,margin:0});
+  s.addText("RASTREAMENTO",{x:.9,y:3.5,w:8,h:.35,fontSize:14,color:"CBD5E1",charSpacing:4,margin:0});
+  s.addText("Elaborado por: "+d.autor+"   |   Período: "+d.mesNome+"/"+d.ano,{x:.9,y:4.9,w:8.5,h:.3,fontSize:10,color:"94A3B8",margin:0});
+
+  /* 2. top 10 */
+  s=pres.addSlide();head(s,"OKR: "+META+"%","PERFORMANCE DE ENTREGA","TOP "+d.top.length+" AGENTES — "+MES+" "+d.ano+"   |   SISTEMA AZ/PEX");
+  function kpi(x,w,cor,val,lab,vc){
+    s.addShape("rect",{x:x,y:.98,w:w,h:.88,fill:{color:W},line:{color:cor,width:2}});
+    s.addText(val,{x:x,y:1.0,w:w,h:.55,align:"center",valign:"middle",fontSize:26,bold:true,color:vc||"000000",margin:0});
+    s.addText(lab,{x:x,y:1.55,w:w,h:.28,align:"center",valign:"middle",fontSize:9,color:SL,margin:0});
+  }
+  kpi(.37,2.1,NAVY,d.emissoes,"Emissões");
+  kpi(2.67,2.1,RD,d.fora,"Fora do Prazo",RD);
+  kpi(4.97,2.1,GR,d.aprov,"Aproveitamento Médio",GR);
+  kpi(7.27,2.1,OR,d.cem,"Agentes com 100%",OR);
+  if(d.top.length){
+    var vals=d.top.map(function(t){return t.taxa;}),lo=Math.max(0,Math.floor((Math.min.apply(null,vals)-2)/5)*5);
+    s.addChart(pres.charts.BAR,[{name:"Aproveitamento %",labels:d.top.map(function(t){return t.nome;}),values:vals}],
+      {x:.25,y:2.0,w:9.5,h:3.35,barDir:"col",chartColors:d.top.map(function(t){return t.taxa>=META?GR:(t.taxa>=85?AM:RD);}),
+       showValue:true,dataLabelFormatCode:"0.0",dataLabelFontSize:9,dataLabelPosition:"outEnd",dataLabelColor:"1E293B",
+       catAxisLabelFontSize:9,valAxisMinVal:lo,valAxisMaxVal:100,valAxisLabelFontSize:8,showLegend:false,
+       valGridLine:{color:"E2E8F0",size:.5},barGapWidthPct:45});
+  }
+  s.addText("Meta "+META+"%  ·  verde = dentro da meta, âmbar = acima de 85%, vermelho = abaixo de 85%",{x:.37,y:5.35,w:9.3,h:.22,fontSize:8,color:SL,margin:0});
+
+  /* 3. fora do prazo por região */
+  s=pres.addSlide();head(s,"OKR: "+META+"%","PERFORMANCE DE ENTREGA","FORA DO PRAZO POR REGIÃO — "+MES+" "+d.ano);
+  if(d.regs.length){
+    var tot=d.regs.reduce(function(a,r){return a+r.ent+r.ab;},0);
+    s.addText("Entregas fora do prazo por região (n = "+tot+")",{x:.37,y:1.0,w:5.6,h:.3,fontSize:12,bold:true,color:NAVY,margin:0});
+    s.addChart(pres.charts.BAR,[
+      {name:"Entregue fora do prazo",labels:d.regs.map(function(r){return r.nome;}),values:d.regs.map(function(r){return r.ent;})},
+      {name:"Em aberto e atrasada",labels:d.regs.map(function(r){return r.nome;}),values:d.regs.map(function(r){return r.ab;})}],
+      {x:.3,y:1.3,w:5.7,h:4.0,barDir:"col",barGrouping:"stacked",chartColors:[OR,"1E3A5F"],showLegend:true,legendPos:"b",legendFontSize:9,
+       showValue:true,dataLabelColor:W,dataLabelFontSize:9,catAxisLabelFontSize:10,valAxisLabelFontSize:8,valGridLine:{color:"E2E8F0",size:.5}});
+    var y=1.05,h=Math.min(1.0,4.3/d.regs.length);
+    d.regs.forEach(function(r){
+      s.addText(r.nome+" · "+(r.ent+r.ab),{x:6.25,y:y,w:3.4,h:.3,fontSize:13,bold:true,color:NAVY,margin:0});
+      if(r.nota)s.addText(r.nota,{x:6.25,y:y+.3,w:3.4,h:h-.3,fontSize:9,color:"334155",valign:"top",margin:0});
+      y+=h+.05;
+    });
+  }else s.addText("Nenhuma entrega fora do prazo no período.",{x:.5,y:2.5,w:9,h:.5,fontSize:16,color:GR,align:"center"});
+  s.addText("Dados: entregas fora do prazo no mês, por UF de destino. Fonte: Brudam AZ + PEX",{x:.37,y:5.35,w:9.3,h:.22,fontSize:8,color:SL,margin:0});
+
+  /* 4. piores performances */
+  s=pres.addSlide();head(s,"OKR: "+META+"%","PERFORMANCE DE ENTREGA","TOP "+d.pior.length+" PIORES PERFORMANCES AGENTES — ATENÇÃO NECESSÁRIA");
+  var hd=function(t){return {text:t,options:{bold:true,color:W,fill:{color:NAVY},fontSize:10,align:"center",valign:"middle"}};};
+  var rows=[[hd("AGENTE"),hd("OPERAÇÕES"),hd("FORA PRAZO"),hd("APROVEIT."),hd("STATUS"),hd("AÇÃO PREVISTA")]];
+  d.pior.forEach(function(a){
+    var crit=a.taxaNum<85;
+    rows.push([
+      {text:a.nome,options:{bold:true,fontSize:10,color:NAVY}},
+      {text:a.ops,options:{align:"center",fontSize:10}},
+      {text:a.fora,options:{align:"center",fontSize:10,color:RD,bold:true}},
+      {text:a.aprov,options:{align:"center",fontSize:10,bold:true,color:crit?RD:AM}},
+      {text:crit?"⚠ CRÍTICO":"⚠ Atenção",options:{align:"center",fontSize:9,bold:true,color:crit?RD:AM}},
+      {text:a.acao||"—",options:{fontSize:9,color:"334155"}}]);
+  });
+  s.addTable(rows,{x:.37,y:1.1,w:9.26,colW:[1.6,1.0,.95,1.0,1.1,3.61],rowH:.55,valign:"middle",border:{type:"solid",color:"E2E8F0",pt:.75},fill:{color:W}});
+  s.addText("* Meta: "+META+"%  |  Dados: operações realizadas dentro do mês",{x:.37,y:5.3,w:9.3,h:.25,fontSize:8,italic:true,color:SL,margin:0});
+
+  /* 5. personalizados */
+  s=pres.addSlide();head(s,"OKR: "+META+"%","PERFORMANCE DE ENTREGA","MODALIDADE PERSONALIZADO — "+MES+" "+d.ano);
+  s.addText("DADOS OPERAÇÕES PERSONALIZADAS",{x:.37,y:1.05,w:9.2,h:.3,fontSize:12,bold:true,color:NAVY,margin:0});
+  var tiles=[[d.pers.total+" MD's","acompanhadas no período",NAVY],[d.pers.ok,"com serviço correto no sistema",GR],[d.pers.sem+" MD's","sem serviço de personalizado no sistema",RD],["Média de "+d.pers.media,"personalizados/dia ("+d.pers.du+" dias úteis)",OR]];
+  tiles.forEach(function(t,i){
+    var x=.37+(i%2)*4.7,y=1.5+Math.floor(i/2)*1.95;
+    s.addShape("rect",{x:x,y:y,w:4.5,h:1.75,fill:{color:W},line:{color:t[2],width:2}});
+    s.addText(String(t[0]),{x:x,y:y+.2,w:4.5,h:.85,align:"center",valign:"middle",fontSize:34,bold:true,color:t[2],margin:0});
+    s.addText(t[1],{x:x,y:y+1.1,w:4.5,h:.4,align:"center",valign:"middle",fontSize:12,color:SL,margin:0});
+  });
+
+  /* 6. pendências */
+  s=pres.addSlide();head(s,"OKR: ROTINA","GERENCIAMENTO DE PENDÊNCIAS","RELATÓRIO DE CASOS "+MES+" "+d.ano+" | TOTAL: "+d.casos.total+" | "+d.casos.aberto+" CASOS EM ABERTO");
+  s.addText("TOP "+d.casos.causas.length+" CAUSAS (Princípio de Pareto)",{x:.37,y:1.05,w:9.2,h:.35,fontSize:14,bold:true,color:OR,margin:0});
+  if(d.casos.causas.length)s.addText(d.casos.causas.map(function(c){return {text:c,options:{breakLine:true,bullet:false,fontSize:14,color:"1E293B",paraSpaceAfter:8}};}),{x:.5,y:1.5,w:9,h:3.6,valign:"top",margin:0});
+  else s.addText("Nenhum caso registrado.",{x:.5,y:1.6,w:9,h:.4,fontSize:14,color:SL});
+
+  /* 7. projetos */
+  s=pres.addSlide();head(s,"OKR: "+META+"%","PROJETO: AUTOMATIZAÇÃO DOS PARCEIROS","STATUS DAS AÇÕES — "+MES+" "+d.ano+"   /   PERFORMANCE ENTREGA PARCEIROS "+META+"%");
+  var pr=[[hd("TAREFA"),hd("STATUS"),hd("RESPONSÁVEL")]];
+  d.proj.forEach(function(p){pr.push([{text:p[0],options:{fontSize:11,bold:true,color:NAVY}},{text:p[1],options:{fontSize:10,align:"center",color:/aprov|encerr|feito/i.test(p[1])?GR:AM,bold:true}},{text:p[2],options:{fontSize:10,align:"center"}}]);});
+  s.addTable(pr,{x:.37,y:1.1,w:9.26,colW:[5.0,2.4,1.86],rowH:.45,valign:"middle",border:{type:"solid",color:"E2E8F0",pt:.75},fill:{color:W}});
+
+  /* 8. encerramento */
+  s=pres.addSlide();s.background={color:NAVY};
+  s.addShape("rect",{x:0,y:0,w:.35,h:5.625,fill:{color:OR},line:{color:OR}});
+  s.addText("OBRIGADO!",{x:.9,y:.7,w:8,h:.9,fontSize:44,bold:true,color:W,margin:0});
+  var enc=[[d.aprov,"Performance Geral",GR],[d.emissoes,"Operações no Mês",W],[d.casos.resolvidos,"Casos Resolvidos",GR],[d.casos.aberto,"Casos em Aberto",OR]];
+  enc.forEach(function(e,i){var x=.9+i*2.2;
+    s.addText(String(e[0]),{x:x,y:2.2,w:2.1,h:.8,fontSize:30,bold:true,color:e[2],margin:0});
+    s.addText(e[1],{x:x,y:3.0,w:2.1,h:.3,fontSize:11,color:"CBD5E1",margin:0});});
+  s.addText(d.autor+"   |   Rastreamento   |   "+d.mesNome+" "+d.ano,{x:.9,y:4.9,w:8.5,h:.3,fontSize:10,color:"94A3B8",margin:0});
+  return pres;
+}
+
+/* ---- Personalizados: lê a planilha do Drive, guarda a contagem por dia no db do Hub ---- */
+var PERS_FILE="1mHPVnvYMq0QyOVNcQR-JffWGMOdSZlio",PERS_INI="2026-05-01";
+function persIso(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function persAbas(names){
+  var today=new Date();today.setHours(0,0,0,0);var res=[],year=today.getFullYear(),prev=null;
+  for(var i=names.length-1;i>=0;i--){
+    var nm=String(names[i]).trim(),mt=nm.match(/^(\d{1,2})\s*[-\/.]\s*(\d{1,2})(?:\s*[-\/.]\s*(\d{2,4}))?\s*$/);
+    if(!mt)continue;var dd=+mt[1],mm=+mt[2];if(mm<1||mm>12||dd<1||dd>31)continue;
+    var y;if(mt[3]){y=+mt[3];if(y<100)y+=2000;}else{y=year;var d0=new Date(y,mm-1,dd),lim=prev?new Date(prev.getTime()+20*864e5):new Date(today.getTime()+45*864e5);if(d0>lim)y--;}
+    var d=new Date(y,mm-1,dd);year=y;prev=d;res.push({name:names[i],date:persIso(d)});
+  }
+  return res;
+}
+function persConta(rows){
+  var hi=-1,i,j,H=["MINUTA","MD","ORIGEM","CLIENTE"];
+  for(i=0;i<Math.min(15,rows.length)&&hi<0;i++){
+    var c=rows[i].map(function(x){return String(x==null?"":x).trim().toUpperCase();});
+    if(c.indexOf("STATUS")>=0&&c.some(function(x){return H.some(function(h){return x===h||x.indexOf(h)===0;});}))hi=i;
+  }
+  if(hi<0)return 0;var n=0;
+  for(i=hi+1;i<rows.length;i++){
+    var r=rows[i],f=String(r[0]==null?"":r[0]).trim().toUpperCase();
+    if(f==="FILTRO"||f==="STATUS")break;if(f==="MINUTA"||f==="MD")continue;
+    var ne=0;for(j=0;j<r.length;j++)if(String(r[j]==null?"":r[j]).trim()!=="")ne++;
+    if(ne>=3)n++;
+  }
+  return n;
+}
+function persFindB64(p){
+  if(!p)return null;
+  if(typeof p==="string"){if(p.length>1000&&/^[A-Za-z0-9+\/=\s]+$/.test(p.slice(0,2000)))return p;try{return persFindB64(JSON.parse(p));}catch(e){return null;}}
+  if(typeof p==="object"){if(typeof p.content==="string"&&p.content.length>100)return p.content;for(var k in p){var v=persFindB64(p[k]);if(v)return v;}}
+  return null;
+}
+function persBytes(s){var b=atob(s.replace(/\s+/g,"")),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function persCont(wb,X){
+  var out={};persAbas(wb.SheetNames).forEach(function(a){
+    if(a.date<PERS_INI)return;
+    var rows=X.utils.sheet_to_json(wb.Sheets[a.name],{header:1,defval:"",blankrows:true}),n=persConta(rows);
+    if(n>0)out[a.date]=n;
+  });return out;
+}
+async function persLerDrive(){
+  var mcp=window.claude&&await window.claude.use("mcp");if(!mcp)throw {code:"sem_mcp"};
+  var res=await mcp.callTool("Google Drive","download_file_content",{fileId:PERS_FILE},{cache:false});
+  var b64=persFindB64(res.payload!=null?res.payload:res);if(!b64)throw {code:"parse"};
+  var X=await carregaXlsx(),wb=X.read(persBytes(b64),{type:"array"});
+  return persCont(wb,X);
+}
+async function persDb(){try{return window.claude?await window.claude.use("db"):null;}catch(e){return null;}}
+async function persMes(k){
+  var db=await persDb();if(!db)return null;var q=await db.collection("personalizados").where("mes","==",k).get(),t=0,ds=[];
+  q.docs.forEach(function(d){var x=d.data();t+=x.n||0;ds.push(x.data);});ds.sort();
+  return {total:t,dias:ds.length,ultimo:ds[ds.length-1]||null,mapa:q.docs.reduce(function(o,d){o[d.id]=(d.data()||{}).n;return o;},{})};
+}
+async function persSalva(dias,atual){
+  var db=await persDb();if(!db)return -1;var c=0;
+  for(var dt in dias){if(atual&&atual[dt]===dias[dt])continue;
+    await db.doc("personalizados/"+dt).set({data:dt,mes:dt.slice(0,7),n:dias[dt],fonte:"drive",salvoEm:new Date().toISOString()});c++;}
+  return c;
+}
+async function persServ(k){
+  try{var db=await persDb();if(!db)return;var s=await db.doc("servico/"+k).get();if(!s.exists||!PP||PP.k!==k)return;var x=s.data(),e=$("pPO"),t=$("pPSv");
+    if(e&&!e.dataset.tocado)e.value=nf(x.ok);
+    if(t){var h=x.salvoEm?new Date(x.salvoEm).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+      t.textContent="Serviço correto vem do relatório 376 do Brudam: "+nf(x.ok)+" de "+nf(x.total)+" MDs com serviço personalizado"+(x.naoAchadas?" ("+nf(x.naoAchadas)+" não achadas no CSV)":"")+(h?" · atualizado em "+h:"");}
+  }catch(e){}
+}
+function persPreenche(r,k){
+  persServ(k);
+  var set=function(id,v){var e=$(id);if(e)e.value=v;};
+  set("pPM",nf(r.total));
+  set("pPD",String(k===PP.hk?r.dias:diasUteis(k)));
+  var s=$("pPSt");if(s){var u=r.ultimo?r.ultimo.split("-").reverse().slice(0,2).join("/"):"";s.textContent=r.dias+" dias guardados"+(u?", até "+u:"")+" · total "+nf(r.total)+" MDs";s.style.color="var(--t2)";}
+}
+async function persInit(){
+  var k=PP&&PP.k,s=$("pPSt");if(!k)return;
+  try{var r=await persMes(k);if(!PP||PP.k!==k)return;
+    if(r&&r.dias)persPreenche(r,k);else if(s)s.textContent=r?"Nenhum dia guardado neste mês. Use Ler planilha do Drive.":"Histórico indisponível aqui. Digite os números ou leia a planilha do Drive.";
+  }catch(e){if(s)s.textContent="Não consegui abrir o histórico guardado. Digite os números.";}
+}
+async function persLer(){
+  var b=$("pPLer"),s=$("pPSt"),k=PP.k;b.disabled=true;b.textContent="Lendo…";if(s){s.textContent="Buscando a planilha no Drive…";s.style.color="var(--t2)";}
+  try{
+    var dias=await persLerDrive(),ant=null;
+    try{var m0=await persMes(k);ant=m0&&m0.mapa;}catch(e){}
+    var gr=await persSalva(dias,ant),r=await persMes(k);
+    if(!r){var t=0,c=0,u="";Object.keys(dias).sort().forEach(function(d){if(d.slice(0,7)===k){t+=dias[d];c++;u=d;}});r={total:t,dias:c,ultimo:u};}
+    if(PP.k!==k)return;
+    if(!r.dias){if(s){s.textContent="A planilha do Drive não tem dias de "+mesLabel(k)+" (o Drive guarda só as abas mais recentes).";s.style.color="var(--am)";}}
+    else{persPreenche(r,k);if(s&&gr<0){s.textContent+=" (não foi possível guardar no histórico)";}}
+  }catch(e){
+    var c=e&&e.code,msg=c==="sem_mcp"?"Leitura do Drive indisponível nesta visualização.":c==="needs_reauth"||c==="server_not_connected"?"Conecte o Google Drive em Configurações > Conectores.":c==="not_in_manifest"||c==="approval_required"||c==="consent_required"?"Permita o acesso ao Google Drive para esta página.":"Não consegui ler a planilha do Drive agora ("+(c||"erro")+").";
+    if(s){s.textContent=msg;s.style.color="var(--rd)";}
+  }finally{b.disabled=false;b.textContent="Ler planilha do Drive";}
+}
+
+/* ---- gerar apresentação do mês (PPTX), montada no navegador com os dados do dash ---- */
+var PPT_URL="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js";
+function carregaPptx(){return window.PptxGenJS?Promise.resolve(window.PptxGenJS):new Promise(function(ok,ko){var s=document.createElement("script");s.src=PPT_URL;s.onload=function(){window.PptxGenJS?ok(window.PptxGenJS):ko(new Error("lib"));};s.onerror=function(){ko(new Error("lib"));};document.head.appendChild(s);});}
+var REG={AC:"Norte",AP:"Norte",AM:"Norte",PA:"Norte",RO:"Norte",RR:"Norte",TO:"Norte",AL:"Nordeste",BA:"Nordeste",CE:"Nordeste",MA:"Nordeste",PB:"Nordeste",PE:"Nordeste",PI:"Nordeste",RN:"Nordeste",SE:"Nordeste",DF:"Centro-Oeste",GO:"Centro-Oeste",MT:"Centro-Oeste",MS:"Centro-Oeste",ES:"Sudeste",MG:"Sudeste",RJ:"Sudeste",SP:"Sudeste",PR:"Sul",RS:"Sul",SC:"Sul"};
+var PROJ_PADRAO=["Cumprir o passo a passo exigido","Estudo % fora do prazo","Performance de parceiro","Ranking top 10 melhores e piores agentes","Redução de erros manuais","Reunião alinhamento agentes"].map(function(t){return t+" | ✅ Aprovado/Encerrado | Arlon Belarmindo";}).join("\n");
+var PP=null;
+function nomeCurto(n){var p=String(n).replace(/\s*\/.*$/,"").split(/\s+/).filter(function(w){return !/^(LTDA|ME|EPP|EIRELI|S\/A|SA|TRANSPORTES?|TRANSP\.?|TRANSPORTADORA|EXPRESS|LOG|LOGISTICA|DE|DA|DO|DOS|DAS|E)$/i.test(w);});return (p.slice(0,2).join(" ")||String(n)).slice(0,16);}
+function pf2(v){return v==null?"—":Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";}
+function numBr(s){var n=parseFloat(String(s).replace(/\./g,"").replace(",","."));return isNaN(n)?null:n;}
+function diasUteis(k){var p=k.split("-"),n=new Date(Date.UTC(+p[0],+p[1],0)).getUTCDate(),c=0;for(var i=1;i<=n;i++){var w=new Date(Date.UTC(+p[0],+p[1]-1,i)).getUTCDay();if(w>0&&w<6)c++;}return c;}
+function dadosPpt(k){var ob=F.base;F.base="todas";var pk=mesAdd(k,-1),m;
+  try{m=agregar({de:mesIni(k),ate:mesFim(k),label:mesLabel(k)},{de:mesIni(pk),ate:mesFim(pk),label:mesLabel(pk)});}finally{F.base=ob;}
+  return m;}
+function lerManual(){try{return JSON.parse(localStorage.getItem("ag_ppt")||"{}")||{};}catch(e){return {};}}
+function gravaManual(o){try{localStorage.setItem("ag_ppt",JSON.stringify(o));}catch(e){}}
+function abrirPpt(){
+  if(!M||!D)return;
+  var hk=String(D.hoje||D.max).slice(0,4)+"-"+String(D.hoje||D.max).slice(4,6),kd=F.modo==="mes"?F.mes:D.meses[D.meses.length-1];
+  if(F.modo!=="mes"&&kd===hk&&D.meses.length>1)kd=D.meses[D.meses.length-2];
+  PP={k:kd,v1:50,v2:20,hk:hk};
+  var el=document.createElement("div");el.className="modal";el.id="pptModal";el.onclick=function(e){if(e.target===el)el.remove();};
+  el.innerHTML="<div class=\"mbox wide\" role=\"dialog\" aria-label=\"Gerar apresentação\"><div class=\"mhd\"><div><div class=\"ct\">Gerar apresentação do mês</div><div class=\"cs\" style=\"margin:0\">Os números vêm do dash (AZ + PEX). Confira, edite o que precisar e baixe o PowerPoint.</div></div><button class=\"x\" type=\"button\" id=\"pptFechar\">Fechar</button></div><div id=\"pptBody\"></div></div>";
+  document.body.appendChild(el);$("pptFechar").onclick=function(){el.remove();};
+  pptRender();$("pptFechar").focus();
+}
+function pin(id,lab,val,w){return "<div class=\"fg\" style=\"flex:1 1 "+(w||150)+"px;min-width:0\"><label for=\""+id+"\">"+lab+"</label><input id=\""+id+"\" type=\"text\" value=\""+esc(val)+"\"></div>";}
+function pptRender(){
+  var k=PP.k,m=dadosPpt(k),R=m.resumo,man=lerManual();
+  var cn=m.agentes.filter(function(a){return D.tipo[a.name]==="CNPJ";});
+  var top=cn.filter(function(a){return a.total>=PP.v1;}).sort(function(a,b){return (b.taxa-a.taxa)||(b.total-a.total);}).slice(0,10);
+  var pior=cn.filter(function(a){return a.total>=PP.v2;}).sort(function(a,b){return (a.taxa-b.taxa)||(b.total-a.total);}).slice(0,5);
+  var rg={};m.agentes.forEach(function(a){(a.mds_fora||[]).forEach(function(x){var r=REG[x.uf]||"Outros",o=rg[r]||(rg[r]={nome:r,ent:0,ab:0});if(x._e)o.ent++;else o.ab++;});});
+  var regs=Object.keys(rg).map(function(r){return rg[r];}).sort(function(a,b){return (b.ent+b.ab)-(a.ent+a.ab);});
+  PP.m=m;PP.top=top;PP.pior=pior;PP.regs=regs;
+  var opt="";for(var j=D.meses.length-1;j>=0;j--){var kk=D.meses[j];opt+="<option value=\""+kk+"\""+(kk===k?" selected":"")+">"+esc(mesLabel(kk)+(kk===PP.hk?" (parcial)":""))+"</option>";}
+  var cem=top.filter(function(a){return a.taxa>=100;}).length;
+  var h="<div class=\"cc\"><div class=\"ct\">Período e seleção</div><div class=\"cs\">Base AZ + PEX · só agentes com CNPJ entram no Top 10 e nos piores</div><div class=\"prow\">"+
+    "<div class=\"fg\"><label for=\"pMes\">Mês</label><select id=\"pMes\">"+opt+"</select></div>"+
+    pin("pV1","Top 10: mínimo de entregas",PP.v1,150)+pin("pV2","Piores 5: mínimo de entregas",PP.v2,150)+pin("pAut","Elaborado por",man.autor||"Arlon Belarmindo Martina",220)+
+    "<button type=\"button\" class=\"mbtn\" id=\"pRec\">Recalcular</button></div></div>";
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 2 · Top "+top.length+" agentes</div><div class=\"cs\">Ordenado pelo melhor aproveitamento. O nome curto é o que aparece no gráfico.</div><div class=\"prow\">"+
+    pin("pEmi","Emissões",nf(R.total))+pin("pFora","Fora do prazo",nf(R.fora))+pin("pApr","Aproveitamento médio",pf2(R.taxa))+pin("pCem","Agentes com 100%",cem+"/"+top.length)+"</div>"+
+    "<div class=\"ox\" style=\"margin-top:12px\"><table class=\"mt\"><thead><tr><th>#</th><th>Agente</th><th>Nome no gráfico</th><th>Entregas</th><th>Fora</th><th>Aproveit.</th></tr></thead><tbody>"+
+    top.map(function(a,i){return "<tr><td>"+(i+1)+"</td><td style=\"font-size:12px\">"+esc(a.name)+"</td><td><input id=\"pt"+i+"\" type=\"text\" value=\""+esc(nomeCurto(a.name))+"\" aria-label=\"Nome no gráfico "+(i+1)+"\"></td><td>"+nf(a.total)+"</td><td>"+nf(a.fora)+"</td><td style=\"color:"+cor(a.taxa)+";font-weight:700\">"+pf2(a.taxa)+"</td></tr>";}).join("")+
+    (top.length?"":"<tr><td colspan=\"6\" style=\"color:var(--t2)\">Nenhum agente com CNPJ atinge o mínimo de entregas.</td></tr>")+"</tbody></table></div></div>";
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 3 · Fora do prazo por região</div><div class=\"cs\">Contagem calculada pela UF de destino. Escreva o comentário de cada região.</div>"+
+    (regs.length?regs.map(function(r,i){return "<div class=\"prow\" style=\"margin-bottom:8px\"><div style=\"flex:0 0 150px;font-size:13px\"><strong>"+esc(r.nome)+"</strong> · "+(r.ent+r.ab)+"<div style=\"font-size:11px;color:var(--t2)\">"+r.ent+" entregues fora · "+r.ab+" em aberto</div></div><div class=\"fg\" style=\"flex:1 1 300px;min-width:0\"><label for=\"pr"+i+"\">Comentário</label><textarea id=\"pr"+i+"\" rows=\"2\"></textarea></div></div>";}).join(""):"<div style=\"color:var(--gn);font-size:13px\">Nenhuma entrega fora do prazo no mês.</div>")+"</div>";
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 4 · "+pior.length+" piores performances</div><div class=\"cs\">Menor aproveitamento entre agentes com CNPJ. Preencha a ação prevista.</div><div class=\"ox\"><table class=\"mt\"><thead><tr><th>Agente</th><th>Operações</th><th>Fora</th><th>Aproveit.</th><th>Ação prevista</th></tr></thead><tbody>"+
+    pior.map(function(a,i){return "<tr><td><input id=\"pp"+i+"n\" type=\"text\" value=\""+esc(nomeCurto(a.name))+"\" aria-label=\"Agente "+(i+1)+"\"></td><td><input id=\"pp"+i+"o\" type=\"text\" value=\""+a.total+"\" aria-label=\"Operações\" style=\"width:70px\"></td><td><input id=\"pp"+i+"f\" type=\"text\" value=\""+a.fora+"\" aria-label=\"Fora\" style=\"width:60px\"></td><td><input id=\"pp"+i+"a\" type=\"text\" value=\""+pf2(a.taxa)+"\" aria-label=\"Aproveitamento\" style=\"width:80px\"></td><td style=\"min-width:260px\"><input id=\"pp"+i+"x\" type=\"text\" value=\"\" placeholder=\"Ex.: Acompanhamento próximos 30 dias\" aria-label=\"Ação prevista\"></td></tr>";}).join("")+
+    (pior.length?"":"<tr><td colspan=\"5\" style=\"color:var(--t2)\">Nenhum agente com CNPJ atinge o mínimo de entregas.</td></tr>")+"</tbody></table></div></div>";
+  var du=diasUteis(k);
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 5 · Modalidade personalizado</div><div class=\"cs\">MDs acompanhadas e dias vêm da planilha Personalizados no Drive (histórico guardado no dash). O serviço correto vem do relatório 376 do Brudam (tarefa das 18h01); se ainda não chegou, digite.</div><div class=\"prow\">"+pin("pPM","MDs acompanhadas","")+pin("pPO","Com serviço correto no sistema","",190)+pin("pPD","Dias úteis",du)+"<button type=\"button\" class=\"mbtn\" id=\"pPLer\">Ler planilha do Drive</button></div><div id=\"pPSt\" role=\"status\" style=\"font-size:12px;color:var(--t2);margin-top:8px\"></div><div id=\"pPSv\" style=\"font-size:12px;color:var(--t2);margin-top:4px\"></div></div>";
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 6 · Pendências</div><div class=\"cs\">Uma causa por linha, na ordem do Pareto.</div><div class=\"prow\">"+pin("pCT","Total de casos","")+pin("pCA","Casos em aberto","")+"</div><div class=\"fg\" style=\"margin-top:10px\"><label for=\"pCC\">Top causas</label><textarea id=\"pCC\" rows=\"5\" placeholder=\"1. EXTRAVIO TOTAL – 5 CASOS (3 SOLUCIONADOS)\"></textarea></div></div>";
+  h+="<div class=\"cc\"><div class=\"ct\">Slide 7 · Projeto de automação dos parceiros</div><div class=\"cs\">Uma tarefa por linha: tarefa | status | responsável. Fica salvo para os próximos meses.</div><div class=\"fg\"><label for=\"pPJ\">Tarefas</label><textarea id=\"pPJ\" rows=\"6\">"+esc(man.proj||PROJ_PADRAO)+"</textarea></div></div>";
+  h+="<div class=\"prow\" style=\"justify-content:space-between;align-items:center\"><span class=\"mmsg\" id=\"pMsg\" role=\"status\"></span><button type=\"button\" class=\"mbtn\" id=\"pGo\">⬇ Baixar PowerPoint</button></div>";
+  $("pptBody").innerHTML=h;
+  $("pMes").onchange=function(){PP.k=this.value;pptRender();};
+  $("pRec").onclick=function(){var a=numBr($("pV1").value),b=numBr($("pV2").value);PP.v1=a==null?50:Math.max(1,a);PP.v2=b==null?20:Math.max(1,b);pptRender();};
+  $("pGo").onclick=gerarPpt;
+  $("pPLer").onclick=persLer;$("pPO").oninput=function(){this.dataset.tocado="1";};persInit();persServ(PP.k);
+}
+function pptMsg(t,c){var e=$("pMsg");if(e){e.textContent=t;e.style.color=c||"var(--gn)";}}
+async function gerarPpt(){
+  var b=$("pGo");b.disabled=true;b.textContent="Gerando…";pptMsg("");
+  try{
+    var P=await carregaPptx(),k=PP.k,v=function(id){var e=$(id);return e?e.value.trim():"";};
+    var du=numBr(v("pPD"))||diasUteis(k),pm=numBr(v("pPM")),po=numBr(v("pPO")),ct=numBr(v("pCT"))||0,ca=numBr(v("pCA"))||0;
+    var man=lerManual();man.autor=v("pAut");man.proj=v("pPJ");gravaManual(man);
+    var d={mesNome:NM[+k.slice(5)-1],mesLabel:mesLabel(k),ano:k.slice(0,4),autor:v("pAut")||"Arlon Belarmindo Martina",meta:META,
+      emissoes:v("pEmi"),fora:v("pFora"),aprov:v("pApr"),cem:v("pCem"),
+      top:PP.top.map(function(a,i){return {nome:v("pt"+i)||nomeCurto(a.name),taxa:a.taxa};}),
+      regs:PP.regs.map(function(r,i){return {nome:r.nome,ent:r.ent,ab:r.ab,nota:v("pr"+i)};}),
+      pior:PP.pior.map(function(a,i){return {nome:v("pp"+i+"n"),ops:v("pp"+i+"o"),fora:v("pp"+i+"f"),aprov:v("pp"+i+"a"),taxaNum:a.taxa,acao:v("pp"+i+"x")};}),
+      pers:{total:pm==null?"—":nf(pm),ok:po==null?"—":nf(po),sem:(pm==null||po==null)?"—":nf(pm-po),media:(pm==null||!du)?"—":nf(Math.round(pm/du)),du:du},
+      casos:{total:ct,aberto:ca,resolvidos:Math.max(0,ct-ca),causas:v("pCC").split("\n").map(function(x){return x.trim();}).filter(Boolean)},
+      proj:v("pPJ").split("\n").map(function(x){return x.trim();}).filter(Boolean).map(function(x){var p=x.split("|").map(function(y){return y.trim();});while(p.length<3)p.push("");return p;})};
+    var pres=construirPpt(P,d),blob=await pres.write({outputType:"blob"});
+    var nomeArq="PE_"+d.ano+"_"+d.mesNome.toUpperCase()+".pptx";
+    var dl=window.claude&&await window.claude.use("downloads");
+    if(dl){
+      try{await dl.save({filename:nomeArq,data:blob});pptMsg("Apresentação pronta: "+nomeArq);}
+      catch(e){var c=e&&e.code;if(c==="rate_limited")pptMsg("Já existe um download esperando confirmação.","var(--am)");else if(c!=="declined")pptMsg("Não foi possível baixar o arquivo ("+(c||"erro")+").","var(--rd)");}
+    }else{var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=nomeArq;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},5000);pptMsg("Apresentação pronta: "+nomeArq);}
+  }catch(e){pptMsg("Não foi possível gerar a apresentação. Verifique a internet e tente de novo.","var(--rd)");}
+  finally{b.disabled=false;b.textContent="⬇ Baixar PowerPoint";}
+}
+document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=$("pptModal");if(m)m.remove();}});
+
 carregar();
 </script>
 </body></html>

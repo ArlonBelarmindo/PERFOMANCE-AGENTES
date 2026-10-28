@@ -5,10 +5,10 @@
 //
 // Regras (iguais ao Performance Hub):
 //  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
-//  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" ou ocorrência de ineficiência do cliente preenchida
-//    (colunas OCORRÊNCIA INEF. / DATA DA OCORRÊNCIA INEF.), mesmo que o status venha só "FORA DO PRAZO"
-//  - fora    = ENTREGUE FORA DO PRAZO, FORA DO PRAZO (sem ineficiência do cliente)
-//  - entregue no mesmo dia da previsão, mesmo após o horário limite = no prazo
+//  - vale o STATUS do Brudam, sem reclassificar (pedido do Arlon em 28/10, 17h50):
+//    sucesso = ENTREGUE NO PRAZO e tudo que tem "(IN.CLIENTE)"; fora = ENTREGUE FORA DO PRAZO e FORA DO PRAZO
+//  - com --regras-portoex volta às regras antigas: ocorrência de ineficiência preenchida (OCORRÊNCIA INEF. /
+//    DATA DA OCORRÊNCIA INEF.) conta no prazo, e entregue no mesmo dia da previsão após o horário também
 //  - pendentes ainda dentro do prazo (NO PRAZO, NO PRAZO (IN.CLIENTE), agendado) não entram na conta
 //  - AZ (azportoex) e PEX (pexlogistica) entram juntos; a MD é identificada por sistema + número
 //  - se a mesma MD do mesmo sistema aparece em mais de um arquivo, vale o arquivo gerado por último
@@ -18,6 +18,7 @@ import path from "node:path";
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(n); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const SAIDA = opt("--saida", "dados.json");
+const REGRAS_PORTOEX = (() => { const i = args.indexOf("--regras-portoex"); if (i < 0) return false; args.splice(i, 1); return true; })();
 const META = Number(opt("--meta", "96"));
 // limita o período (AAAAMMDD) para descartar datas digitadas erradas no Brudam (ex.: 2029)
 const DE = Number(opt("--de", "0")), ATE = Number(opt("--ate", "99999999"));
@@ -116,7 +117,7 @@ for (const f of arquivos) {
       md, sistema, agente: (l[c.agente] || "").trim() || "SEM AGENTE INFORMADO", pagador: (l[c.cliente] || "").trim(),
       dest: (l[c.dest] || "").trim(), cidade: (l[c.cidade] || "").trim(), uf: (l[c.uf] || "").trim().toUpperCase() || "—",
       prev: dataNum(l[c.prev]), agenda, entrega: dataNum(l[c.entrega]), status: (l[c.status] || "").trim(),
-      sucesso: classificar(l[c.status], temOcInef),
+      sucesso: classificar(l[c.status], REGRAS_PORTOEX && temOcInef),
     });
   }
 }
@@ -132,7 +133,7 @@ for (const r of porMd.values()) {
   const ref = r.agenda || r.prev;
   if (!ref || ref < DE || ref > ATE) continue;
   // regra PortoEX: entregue no mesmo dia da previsão, mesmo após o horário limite, conta como no prazo
-  if (r.sucesso === 0 && r.entrega && r.entrega === ref) { r.sucesso = 1; r.status = "ENTREGUE NO DIA (HORÁRIO EXCEDIDO)"; mesmoDia++; }
+  if (REGRAS_PORTOEX && r.sucesso === 0 && r.entrega && r.entrega === ref) { r.sucesso = 1; r.status = "ENTREGUE NO DIA (HORÁRIO EXCEDIDO)"; mesmoDia++; }
   if (r.agenda) comAgendamento++;
   // [md, data_ref(AAAAMMDD), agendado(0/1), sucesso(0/1), agente, pagador, destinatario, cidade, uf, status, entrega(AAAAMMDD)]
   linhas.push([r.md, ref, r.agenda ? 1 : 0, r.sucesso, id("ag", r.agente), id("pag", r.pagador), id("dest", r.dest), id("cid", r.cidade), r.uf, id("st", r.status), r.entrega, id("sis", r.sistema)]);
@@ -158,6 +159,7 @@ fs.writeFileSync(SAIDA, JSON.stringify(dados));
 const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
 console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
 console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
+console.log(REGRAS_PORTOEX ? "Regras PortoEX ligadas (ocorrência inef. e mesmo dia contam no prazo)" : "Status do Brudam sem reclassificação");
 console.log(`Entregues no mesmo dia após o horário (passaram a contar no prazo): ${mesmoDia}`);
 { const c = { CNPJ: 0, CPF: 0, OUTRO: 0, "": 0 }; dic.agTipo.forEach((t) => c[t]++); console.log(`Cadastro: ${cadastros.length} arquivo(s), ${cadastro.size} nomes · agentes nas entregas: ${c.CNPJ} com CNPJ, ${c.CPF} com CPF, ${c.OUTRO} doc inválido, ${c[""]} sem cadastro`); }
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
