@@ -40,7 +40,9 @@ for (const a of args) {
 if (!arquivos.length) { console.error("Nenhum CSV de entregas encontrado."); process.exit(1); }
 // ordem = data de geração no nome; "_ULTIMA" (arquivo do dia, sobrescrito a cada atualização) vence os horários do mesmo dia
 const carimbo = (f) => (path.basename(f).match(/(\d{4}_\d{2}_\d{2}(?:_\d{2}_\d{2}_\d{2}|_ULTIMA)?)/) || [, "0"])[1];
-arquivos.sort((a, b) => carimbo(a).localeCompare(carimbo(b)));
+// no mesmo carimbo, o arquivo do ano inteiro (AAAA-ANO_) vem por último: é o retrato mais completo do Brudam
+const ehAno = (f) => /^\d{4}-ANO_/i.test(path.basename(f)) ? 1 : 0;
+arquivos.sort((a, b) => carimbo(a).localeCompare(carimbo(b)) || ehAno(a) - ehAno(b));
 
 const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
 function dataNum(s) { const m = String(s || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? +(m[3] + m[2] + m[1]) : 0; }
@@ -89,8 +91,16 @@ let lidas = 0, mesmoDia = 0, ocorrInef = 0, comAgendamento = 0, colAgendaAchada 
 const SISTEMAS = { azportoex: "AZ", pexlogistica: "PEX" };
 const sistemaDe = (f) => { const m = path.basename(f).match(/([a-z0-9]+)_entregas_/i); const k = m ? m[1].toLowerCase() : "az"; return SISTEMAS[k] || k.toUpperCase(); };
 const porSistema = {};
-for (const f of arquivos) {
+// arquivo do ano inteiro (AAAA-ANO_<sistema>_entregas_..., Prev. Entrega de 01/01 a 31/12) é o retrato completo do Brudam:
+// a MD que só aparece em arquivos mais antigos que ele saiu do Brudam (cancelada ou previsão fora do ano) e não pode
+// ficar no dash com o status velho. Arquivo mensal não serve para isso: o filtro de mês do Brudam deixa de fora MDs
+// da virada do mês (ex.: AZ 300156, previsão 01/10, não sai no filtro 01/10 a 31/10)
+const cobertura = new Map(); // "SISTEMA|AAAAMM" -> ordem do arquivo mensal mais novo
+let descartadas = 0;
+for (const [ordem, f] of arquivos.entries()) {
   const sistema = sistemaDe(f);
+  const ano = path.basename(f).match(/^(\d{4})-ANO_/i);
+  if (ano) for (let m = 1; m <= 12; m++) cobertura.set(sistema + "|" + ano[1] + String(m).padStart(2, "0"), ordem);
   const linhas = parseCsv(fs.readFileSync(f, "utf8"));
   const cab = linhas[0].map(norm);
   const col = (nome) => cab.indexOf(norm(nome));
@@ -120,7 +130,7 @@ for (const f of arquivos) {
       md, sistema, agente: (l[c.agente] || "").trim() || "SEM AGENTE INFORMADO", pagador: (l[c.cliente] || "").trim(),
       dest: (l[c.dest] || "").trim(), cidade: (l[c.cidade] || "").trim(), uf: (l[c.uf] || "").trim().toUpperCase() || "—",
       prev: dataNum(l[c.prev]), agenda, entrega: dataNum(l[c.entrega]), status: (l[c.status] || "").trim(),
-      sucesso: classificar(l[c.status], false), temOcInef,
+      sucesso: classificar(l[c.status], false), temOcInef, ordem,
     });
   }
 }
@@ -132,6 +142,8 @@ const id = (k, v) => { let i = idx[k].get(v); if (i === undefined) { i = dic[k].
 
 const linhas = [];
 for (const r of porMd.values()) {
+  const cob = cobertura.get(r.sistema + "|" + Math.floor(r.prev / 100));
+  if (cob !== undefined && r.ordem < cob) { descartadas++; continue; }
   if (r.sucesso === null) continue;
   const ref = r.agenda || r.prev;
   if (!ref || ref < DE || ref > ATE) continue;
@@ -166,6 +178,7 @@ fs.writeFileSync(SAIDA, JSON.stringify(dados));
 const min = linhas[0]?.[1], max = linhas.at(-1)?.[1];
 console.log(`${arquivos.length} arquivo(s), ${lidas} linhas, ${porMd.size} MDs, ${linhas.length} entregas na conta (${min} a ${max}) → ${SAIDA}`);
 console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}", usada em ${comAgendamento} entregas.` : "Data de agendamento: coluna não encontrada no CSV; usando Prev. Entrega em todas.");
+console.log(`MDs descartadas por não estarem mais no arquivo do ano mais novo (saíram do Brudam): ${descartadas}`);
 console.log(REGRAS_PORTOEX ? `Regras PortoEX: ${ocorrInef} com ocorrência inef. no Brudam e ${mesmoDia} entregues no dia previsto após o horário passaram a contar no prazo (status do Brudam mantido)` : "Só status do Brudam (--sem-regras)");
 { const c = { CNPJ: 0, CPF: 0, OUTRO: 0, "": 0 }; dic.agTipo.forEach((t) => c[t]++); console.log(`Cadastro: ${cadastros.length} arquivo(s), ${cadastro.size} nomes · agentes nas entregas: ${c.CNPJ} com CNPJ, ${c.CPF} com CPF, ${c.OUTRO} doc inválido, ${c[""]} sem cadastro`); }
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
