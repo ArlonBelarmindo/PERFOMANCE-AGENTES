@@ -5,7 +5,8 @@
 //
 // Regras (iguais ao Performance Hub):
 //  - data de referência = DATA DE AGENDAMENTO, quando informada; se em branco, PREV. ENTREGA DATA
-//  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" (ineficiência do cliente)
+//  - sucesso = ENTREGUE NO PRAZO, e tudo que tem "(IN.CLIENTE)" ou ocorrência de ineficiência do cliente preenchida
+//    (colunas OCORRÊNCIA INEF. / DATA DA OCORRÊNCIA INEF.), mesmo que o status venha só "FORA DO PRAZO"
 //  - fora    = ENTREGUE FORA DO PRAZO, FORA DO PRAZO (sem ineficiência do cliente)
 //  - entregue no mesmo dia da previsão, mesmo após o horário limite = no prazo
 //  - pendentes ainda dentro do prazo (NO PRAZO, NO PRAZO (IN.CLIENTE), agendado) não entram na conta
@@ -54,10 +55,10 @@ function parseCsv(txt) {
   if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
   return linhas;
 }
-function classificar(status) {
+function classificar(status, temOcorrenciaInef) {
   const s = norm(status);
   if (!s) return null;
-  const inef = s.includes("IN.CLIENTE") || s.includes("INEFICIENCIA");
+  const inef = temOcorrenciaInef || s.includes("IN.CLIENTE") || s.includes("INEFICIENCIA");
   if (s.startsWith("ENTREGUE NO PRAZO")) return 1;
   if (s.includes("FORA DO PRAZO")) return inef ? 1 : 0;
   return null;
@@ -78,6 +79,7 @@ for (const f of cadastros) {
 }
 
 const porMd = new Map();
+let colunasCorrigidas = 0;
 let lidas = 0, mesmoDia = 0, comAgendamento = 0, colAgendaAchada = null;
 // sistema de origem pelo nome do arquivo: azportoex_entregas_... → AZ, pexlogistica_entregas_... → PEX
 const SISTEMAS = { azportoex: "AZ", pexlogistica: "PEX" };
@@ -91,21 +93,30 @@ for (const f of arquivos) {
   const c = {
     md: col("MD"), cliente: col("CLIENTE"), dest: col("DESTINATARIO"), cidade: col("CIDADE DESTINO"), uf: col("UF DESTINO"),
     agente: col("RESP ENTREGA"), prev: col("PREV. ENTREGA DATA"), entrega: col("ENTREGA"), status: col("STATUS"),
+    ocInef: col("OCORRENCIA INEF."), dtInef: col("DATA DA OCORRENCIA INEF."),
     agenda: COLS_AGENDAMENTO.map(col).find((x) => x >= 0) ?? -1,
   };
   if (c.agenda >= 0) colAgendaAchada = linhas[0][c.agenda].trim();
   for (const k of ["md", "agente", "prev", "status"]) if (c[k] < 0) throw new Error(`${path.basename(f)}: coluna ${k} não encontrada`);
-  for (const l of linhas.slice(1)) {
+  for (let l of linhas.slice(1)) {
     const md = (l[c.md] || "").trim();
     if (!/^\d+$/.test(md)) continue;
     lidas++;
+    // o Brudam exporta "&" de nomes como "AMP;" (ex.: "S&L" vira "SAMP;L"), e esse ";" a mais empurra as colunas
+    // seguintes uma casa para a direita. Junta de volta o pedaço dentro do campo de texto (cliente/remetente/destinatário).
+    const sobra = l.length - cab.length;
+    if (sobra > 0) {
+      const i = l.findIndex((v, k) => k >= c.cliente && k < c.cidade + sobra && /AMP$/.test(v));
+      if (i >= 0) { l = l.slice(); l.splice(i, sobra + 1, l.slice(i, i + sobra + 1).join(";").replace(/AMP;/g, "&")); colunasCorrigidas++; }
+    }
+    const temOcInef = (c.ocInef >= 0 && !!(l[c.ocInef] || "").trim()) || (c.dtInef >= 0 && !!(l[c.dtInef] || "").trim());
     const agenda = c.agenda >= 0 ? dataNum(l[c.agenda]) : 0;
     porSistema[sistema] = (porSistema[sistema] || 0) + 1;
     porMd.set(sistema + "|" + md, {
       md, sistema, agente: (l[c.agente] || "").trim() || "SEM AGENTE INFORMADO", pagador: (l[c.cliente] || "").trim(),
       dest: (l[c.dest] || "").trim(), cidade: (l[c.cidade] || "").trim(), uf: (l[c.uf] || "").trim().toUpperCase() || "—",
       prev: dataNum(l[c.prev]), agenda, entrega: dataNum(l[c.entrega]), status: (l[c.status] || "").trim(),
-      sucesso: classificar(l[c.status]),
+      sucesso: classificar(l[c.status], temOcInef),
     });
   }
 }
@@ -150,4 +161,5 @@ console.log(colAgendaAchada ? `Data de agendamento: coluna "${colAgendaAchada}",
 console.log(`Entregues no mesmo dia após o horário (passaram a contar no prazo): ${mesmoDia}`);
 { const c = { CNPJ: 0, CPF: 0, OUTRO: 0, "": 0 }; dic.agTipo.forEach((t) => c[t]++); console.log(`Cadastro: ${cadastros.length} arquivo(s), ${cadastro.size} nomes · agentes nas entregas: ${c.CNPJ} com CNPJ, ${c.CPF} com CPF, ${c.OUTRO} doc inválido, ${c[""]} sem cadastro`); }
 console.log("Linhas lidas por sistema:", JSON.stringify(porSistema));
+if (colunasCorrigidas) console.log(`Linhas com "&" no nome (colunas realinhadas): ${colunasCorrigidas}`);
 console.log(`Tamanho: ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB · ${dic.ag.length} agentes · ${dic.dest.length} destinatários`);
